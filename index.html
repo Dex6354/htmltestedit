@@ -1,183 +1,1922 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Trailer — Tela Cheia - TV Fix</title>
-  <style>
-    /* Cores e Reset Básico */
-    :root{--primary:#3b82f6}
-    *{box-sizing:border-box;margin:0;padding:0}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Lista de Filmes & Séries - Quero Assistir</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#007bff', // Azul (usado na borda)
+                        'success': '#28a745',
+                        'danger': '#dc3545',
+                        'dark-bg': '#1f2937',
+                        'dark-card': '#374151',
+                        'accent': '#ffc107', // Amarelo (usado no texto)
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Removido body-padding-top pois o cabeçalho não é mais fixo */
+        
+        .poster-fit {
+            width: auto;
+            height: 120px; /* Altura padrão para itens da lista */
+            object-fit: contain;
+            border-radius: 4px;
+        }
+        /* Ajuste para que a imagem do carrossel caiba */
+        .search-poster-fit {
+            height: 200px;
+            object-fit: cover;
+        }
+        .suggestions-scroll {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 10px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .suggestion-card {
+            display: inline-block;
+            width: 150px;
+            white-space: normal;
+        }
 
-    /* 1. Modo Escuro e Container Flex para Centralização */
-    body{
-      font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
-      background:#000; /* Fundo totalmente preto */
-      color:#fff;
-      display:flex; /* Usa flexbox para centralizar */
-      align-items:center;
-      justify-content:center;
-      height:100vh; /* Ocupa 100% da altura da viewport */
-      width: 100vw; /* Ocupa 100% da largura da viewport */
-      position: relative; /* Necessário para posicionar o modal */
-    }
+        /* Estilos do SortableJS e arrastar/soltar */
+        .watchlist-item {
+            cursor: grab;
+            transition: all 0.2s ease-in-out;
+            touch-action: manipulation; 
+        }
+        .watchlist-item:active {
+            cursor: grabbing;
+        }
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #4b5563;
+        }
 
-    /* Botão Principal */
-    .btn{
-      appearance:none;
-      border:0;
-      padding:1.2rem 2.5rem; /* Botão mais proeminente */
-      font-weight:700;
-      border-radius:10px;
-      background:var(--primary);
-      color:white;
-      cursor:pointer;
-      font-size:1.2rem;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-      transition: background 0.3s;
-    }
+        .dark .placeholder-image {
+            background-color: #4b5563; 
+            color: #d1d5db; 
+        }
+        
+        /* Adicionado para permitir texto longo com quebra de linha (máx 2 linhas) */
+        .watchlist-title {
+            display: -webkit-box;
+            -webkit-line-clamp: 2; 
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal; 
+            min-height: 2.5em; /* Garante espaço para duas linhas */
+        }
+        
+        /* NOVO: Ajuste para títulos longos no Carrossel (máx 3 linhas) */
+        .suggestions-title {
+            display: -webkit-box;
+            -webkit-line-clamp: 3; 
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal; 
+            min-height: 3.5em; /* Garante espaço para três linhas */
+        }
 
-    .btn:hover {
-        background: #2563eb;
+        .tab-button {
+        /* Base: Texto e Ícone BRANCOS, padding, transição, borda inferior transparente. */
+        @apply font-medium py-2 px-4 transition duration-150 text-white border-b-4 border-transparent hover:text-gray-200;
+        border-radius: 0.5rem 0.5rem 0.5rem 0.5rem; /* rounded-t-lg */
+        color: #FFFFFF;
+        /* CORREÇÃO DE ESTILO: Cor inativa igual aos filtros (bg-gray-700) */
+        background-color: #4b5563; 
+        padding: 0.2rem 0.2rem;
     }
     
-    /* CLASSE PARA ESCONDER O BOTÃO: SIMPLES E CONFIÁVEL */
-    .btn.hidden {
-        display: none !important; 
+    .tab-button:hover {
+        /* CORREÇÃO DE ESTILO: Hover inativo igual aos filtros (bg-gray-600) */
+        background-color: #007bff; 
     }
-
-    /* 3. Overlay (Vídeo) AGORA POSICIONADO ABSOLUTO E INICIALMENTE ESCONDIDO */
-    /* Usamos absolute/fixed para garantir que cubra 100% da tela */
-    .overlay{
-      position:fixed; /* Mudança de lógica: Usar fixed é geralmente mais robusto para tela cheia */
-      inset:0;
-      display:none; /* Inicialmente escondido */
-      align-items:center;
-      justify-content:center;
-      background:rgba(0,0,0,1); 
-      z-index:1000;
-      width: 100%;
-      height: 100%;
-    }
-    .overlay.show{
-      display:flex;
-    }
-
-    /* O restante da lógica de expansão permanece para garantir o 100% */
-    .modal{
-      width:100%;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-    }
-
-    .video-wrap{
-      position:relative;
-      width:100%;
-      height:100%;
-      background:#000;
-      /* Ocultado pelo .overlay (display:none), não precisamos ocultar aqui */
+        .tab-active {
+    /* Ativo: Sublinhado na cor primary (Azul), Fundo bg-gray-800 (para conectar ao conteúdo) */
+        @apply border-primary text-white; 
+        color: #FFFFFF; /* bg-gray-800 - Fundo do container abaixo */
+        background-color: #007bff;
     }
     
-    /* O Iframe (o vídeo) preenche totalmente o wrap (que é 100% da tela) */
-    .video-wrap iframe{
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      border:0;
+    .tab-inactive {
+        /* Inativo: Sem sublinhado, Fundo bg-gray-900 (Fundo do header/body) */
+        @apply border-transparent text-white;
+        color: #FFFFFF; /* bg-gray-900 */
+    }
+    
+    /* MUDANÇA: O 'active' será gerenciado via JS, removendo a classe 'bg-primary' padrão */
+    .suggestions-filter-button {
+        @apply font-medium py-2 px-4 transition duration-150 text-white border-b-4 border-transparent hover:text-gray-200;
+        border-radius: 0.5rem 0.5rem 0.5rem 0.5rem; /* rounded-t-lg */
+        color: #FFFFFF;
+        /* CORREÇÃO DE ESTILO: Cor inativa igual aos filtros (bg-gray-700) */
+        background-color: #4b5563; 
+        padding: 0.2rem 0.5rem;
+    }
+    
+    /* MUDANÇA: Classe de estilo para o botão ATIVO */
+    .suggestions-filter-active {
+        @apply font-medium py-2 px-4 transition duration-150 text-white border-b-4 border-transparent hover:text-gray-200;
+        border-radius: 0.5rem 0.5rem 0.5rem 0.5rem; /* rounded-t-lg */
+        color: #FFFFFF;
+        /* CORREÇÃO DE ESTILO: Cor inativa igual aos filtros (bg-gray-700) */
+        background-color: #007bff; 
+        padding: 0.2rem 0.5rem;
     }
 
-    /* 4. Botão de Fechar Flutuante */
-    .close-btn{
-      position:absolute;
-      top:20px;
-      right:30px;
-      background:rgba(255, 255, 255, 0.2); 
-      border:2px solid rgba(255, 255, 255, 0.5);
-      color:#fff;
-      font-size:20px;
-      line-height:1;
-      padding:10px 16px;
-      border-radius:50%; 
-      cursor:pointer;
-      z-index:10001; /* Z-index ligeiramente maior que o overlay */
-      transition: background 0.3s, transform 0.2s;
-    }
-    .close-btn:hover {
-        background: rgba(255, 255, 255, 0.4);
-        transform: scale(1.05);
+    /* INÍCIO DAS CORREÇÕES DO MODAL FULL-SCREEN */
+    
+    /* CORREÇÃO DE BUG CRÍTICO: Garante que o modal esteja *realmente* oculto por padrão. 
+       O 'display: flex' no ID estava sobrescrevendo o 'display: none' da classe 'hidden' do Tailwind. */
+    #trailer-modal.hidden {
+        display: none !important;
     }
 
-    @media (max-width:480px){.btn{width:80%;padding:1rem 1.5rem;font-size:1.1rem;}}
-  </style>
+    /* NOVO ESTILO PARA FORÇAR O MODAL FULL-SCREEN, Z-INDEX ALTO E GARANTIR QUE CUBRA TUDO */
+    #trailer-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        /* Força 100% da viewport */
+        width: 100vw !important; 
+        height: 100vh !important;
+        background-color: #000000; /* Preto total */
+        z-index: 9999; /* Z-index muito alto para garantir que fique no topo */
+        /* Garante que o conteúdo seja centralizado, se necessário (se o hidden não estiver ativo) */
+        display: flex; 
+        align-items: center;
+        justify-content: center;
+        transition: none; /* Sem transição para o modal abrir instantaneamente */
+    }
+
+    /* NOVO ESTILO PARA GARANTIR QUE O IFRAME OCUPE 100% DA VIEWPORT E RESOLVA O PROBLEMA DE VÍDEO */
+    .fullscreen-iframe {
+        width: 100vw;
+        height: 100vh;
+        /* Garante que o iframe fique no topo do modal */
+        z-index: 1; 
+        border: none;
+    }
+
+    /* Estilo para o botão de fechar flutuante dentro do modal */
+    #close-trailer-button {
+        /* Mantém o z-index alto para ficar acima do iframe */
+        z-index: 99999; 
+        position: fixed;
+    }
+    /* FIM DAS CORREÇÕES DO MODAL FULL-SCREEN */
+
+    </style>
 </head>
-<body>
-  <button id="openBtn" class="btn">▶ Ver Trailer</button>
+<body class="dark bg-gray-900 min-h-screen p-4 md:p-8 transition-colors duration-500">
 
-  <div id="trailerModal" class="overlay">
-    <button id="closeBtn" class="close-btn">✕</button> 
-    
-    <div class="modal">
-      <div class="video-wrap">
-        <iframe id="videoFrame" src="" title="Trailer" 
-                allow="autoplay; fullscreen; picture-in-picture; accelerometer; gyroscope" 
-                allowfullscreen autofocus>
-        </iframe>
-      </div>
+    <div class="max-w-4xl mx-auto">
+
+        <header class="w-full z-40 bg-gray-900 transition-colors duration-500 mb-6 md:mb-8">
+            <div class="flex items-center justify-between border-b border-gray-700 pb-3">
+               <a href="." class="flex items-center space-x-2 text-white no-underline">
+                <h1 class="text-xl md:text-2xl font-extrabold flex items-center space-x-2 text-white">
+                    <i class="fas fa-list-check text-primary"></i>
+                    <span>Minha Lista</span>
+                </h1>
+               </a>
+                
+                <nav class="flex space-x-2">
+                    <button id="nav-suggestions" class="tab-button tab-active" onclick="navigateTab('suggestions')">
+                        <i class="fas fa-lightbulb"></i> Sugestões
+                    </button>
+                    <button id="nav-watchlist" class="tab-button tab-inactive" onclick="navigateTab('watchlist')">
+                        <i class="fas fa-list-ul"></i> Minha Lista
+                    </button>
+                </nav>
+            </div>
+        </header>
+        <div class="bg-gray-800 shadow-2xl rounded-xl p-6 md:p-10 text-gray-100">
+
+            <button id="back-button" class="mb-4 hidden bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition duration-150">
+                <i class="fas fa-arrow-left mr-2"></i> Voltar
+            </button>
+
+            <div id="app-content">
+                
+                <div id="suggestions-page" class="space-y-10">
+
+                    <section class="p-4 bg-gray-700 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-200">Buscar Item</h2>
+                        <div class="flex">
+                            <input type="text" id="search-input" placeholder="Buscar filme ou série..."
+                                class="flex-grow p-3 border border-gray-600 bg-gray-800 text-white rounded-l-lg focus:ring-primary focus:border-primary transition duration-150"
+                                aria-label="Campo de busca">
+                            <button id="search-button"
+                                    class="bg-primary text-white p-3 rounded-r-lg hover:bg-blue-600 transition duration-150 font-medium flex items-center space-x-2">
+                                <i class="fas fa-search"></i>
+                                <span class="hidden sm:inline">Buscar</span>
+                            </button>
+                        </div>
+                    </section>
+
+                    <section id="search-results-section">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-200 hidden" id="search-results-title">Resultados da Busca</h2>
+                        <div id="results-container" class="space-y-4 hidden"> 
+                            <p class="col-span-full text-center text-gray-500 p-4 border border-dashed border-gray-600 rounded-lg">Digite algo na barra de busca para encontrar filmes e séries.</p>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h2 class="text-xl font-semibold mb-4 text-gray-200 flex items-center space-x-2">
+                            <i class="fas fa-calendar-alt text-primary"></i>
+                            <span>Lançamentos Recentes</span>
+                        </h2>
+                        <div class="flex space-x-2 mb-4">
+                            <button class="suggestions-filter-button suggestions-filter-active" data-filter="all" onclick="setGlobalSuggestionFilter('all')"><i class="fas fa-layer-group"></i> Todos</button>
+                            <button class="suggestions-filter-button" data-filter="movie" onclick="setGlobalSuggestionFilter('movie')"><i class="fas fa-film"></i> Filmes</button>
+                            <button class="suggestions-filter-button" data-filter="tv" onclick="setGlobalSuggestionFilter('tv')"><i class="fas fa-tv"></i> Séries</button>
+                        </div>
+                        <div id="recent-releases-container" class="suggestions-scroll space-x-4">
+                            <p class="col-span-full text-center text-primary animate-pulse p-4">Carregando lançamentos recentes...</p>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h2 class="text-xl font-semibold mb-4 text-gray-200 flex items-center space-x-2">
+                            <i class="fas fa-chart-line text-accent"></i>
+                            <span>Tendências do Dia</span>
+                        </h2>
+                        <div class="flex space-x-2 mb-4">
+                            <button class="suggestions-filter-button suggestions-filter-active" data-filter="all" onclick="setGlobalSuggestionFilter('all')"><i class="fas fa-layer-group"></i> Todos</button>
+                            <button class="suggestions-filter-button" data-filter="movie" onclick="setGlobalSuggestionFilter('movie')"><i class="fas fa-film"></i> Filmes</button>
+                            <button class="suggestions-filter-button" data-filter="tv" onclick="setGlobalSuggestionFilter('tv')"><i class="fas fa-tv"></i> Séries</button>
+                        </div>
+                        <div id="trending-container" class="suggestions-scroll space-x-4">
+                            <p class="col-span-full text-center text-primary animate-pulse p-4">Carregando tendências...</p>
+                        </div>
+                    </section>
+                    
+                    <section>
+                        <h2 class="text-xl font-semibold mb-4 text-gray-200 flex items-center space-x-2">
+                            <i class="fas fa-video text-danger"></i>
+                            <span>Top 10 Netflix</span>
+                        </h2>
+                        <div class="flex space-x-2 mb-4">
+                            <button class="suggestions-filter-button suggestions-filter-active" data-filter="all" onclick="setGlobalSuggestionFilter('all')"><i class="fas fa-layer-group"></i> Todos</button>
+                            <button class="suggestions-filter-button" data-filter="movie" onclick="setGlobalSuggestionFilter('movie')"><i class="fas fa-film"></i> Filmes</button>
+                            <button class="suggestions-filter-button" data-filter="tv" onclick="setGlobalSuggestionFilter('tv')"><i class="fas fa-tv"></i> Séries</button>
+                        </div>
+                        <div id="netflix-container" class="suggestions-scroll space-x-4">
+                            <p class="col-span-full text-center text-primary animate-pulse p-4">Carregando Top 10 Netflix...</p>
+                        </div>
+                    </section>
+                    
+                    <section>
+                        <h2 class="text-xl font-semibold mb-4 text-gray-200 flex items-center space-x-2">
+                            <i class="fas fa-ticket-alt text-success"></i>
+                            <span>Filmes no Cinema</span>
+                        </h2>
+                        <div class="flex space-x-2 mb-4">
+                            <button class="suggestions-filter-button suggestions-filter-active" data-filter="all" onclick="setGlobalSuggestionFilter('all')"><i class="fas fa-layer-group"></i> Todos</button>
+                            <button class="suggestions-filter-button" data-filter="movie" onclick="setGlobalSuggestionFilter('movie')"><i class="fas fa-film"></i> Filmes</button>
+                            <button class="suggestions-filter-button" data-filter="tv" onclick="setGlobalSuggestionFilter('tv')"><i class="fas fa-tv"></i> Séries</button>
+                        </div>
+                        <div id="in-theaters-container" class="suggestions-scroll space-x-4">
+                            <p class="col-span-full text-center text-primary animate-pulse p-4">Carregando filmes em cartaz...</p>
+                        </div>
+                    </section>
+                    
+                    <section>
+                        <h2 class="text-xl font-semibold mb-4 text-gray-200 flex items-center space-x-2">
+                            <i class="fas fa-fire text-danger"></i>
+                            <span>Populares Atuais</span>
+                        </h2>
+                        <div class="flex space-x-2 mb-4">
+                            <button class="suggestions-filter-button suggestions-filter-active" data-filter="all" onclick="setGlobalSuggestionFilter('all')"><i class="fas fa-layer-group"></i> Todos</button>
+                            <button class="suggestions-filter-button" data-filter="movie" onclick="setGlobalSuggestionFilter('movie')"><i class="fas fa-film"></i> Filmes</button>
+                            <button class="suggestions-filter-button" data-filter="tv" onclick="setGlobalSuggestionFilter('tv')"><i class="fas fa-tv"></i> Séries</button>
+                        </div>
+                        <div id="popular-container" class="suggestions-scroll space-x-4">
+                            <p class="col-span-full text-center text-primary animate-pulse p-4">Carregando populares...</p>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h2 class="text-xl font-semibold mb-4 text-gray-200 flex items-center space-x-2">
+                            <i class="fas fa-star text-yellow-500"></i>
+                            <span>Mais Bem Avaliados</span>
+                        </h2>
+                        <div class="flex space-x-2 mb-4">
+                            <button class="suggestions-filter-button suggestions-filter-active" data-filter="all" onclick="setGlobalSuggestionFilter('all')"><i class="fas fa-layer-group"></i> Todos</button>
+                            <button class="suggestions-filter-button" data-filter="movie" onclick="setGlobalSuggestionFilter('movie')"><i class="fas fa-film"></i> Filmes</button>
+                            <button class="suggestions-filter-button" data-filter="tv" onclick="setGlobalSuggestionFilter('tv')"><i class="fas fa-tv"></i> Séries</button>
+                        </div>
+                        <div id="top-rated-container" class="suggestions-scroll space-x-4">
+                            <p class="col-span-full text-center text-primary animate-pulse p-4">Carregando Top Rated...</p>
+                        </div>
+                    </section>
+
+                </div>
+                
+                <div id="watchlist-page" class="space-y-4 hidden">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-200 flex items-center space-x-2">
+                        <i class="fas fa-list-ul text-success"></i>
+                        <span>Itens para Assistir</span>
+                        <span class="text-sm text-gray-400 ml-2 hidden sm:inline">(Clique e segure para arrastar e reordenar)</span>
+                    </h2>
+                    
+                    <div class="flex space-x-2 mb-4">
+                        <button id="filter-all" class="filter-button bg-primary text-white px-4 py-2 rounded-lg font-medium transition duration-150" data-filter="all"><i class="fas fa-layer-group"></i> Todos</button>
+                        <button id="filter-movie" class="filter-button bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg font-medium transition duration-150" data-filter="movie"><i class="fas fa-film"></i> Filmes</button>
+                        <button id="filter-tv" class="filter-button bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg font-medium transition duration-150" data-filter="tv"><i class="fas fa-tv"></i> Séries</button>
+                    </div>
+                    <div id="watchlist-results" class="space-y-4"> 
+                        <div class="col-span-full text-center text-gray-500 p-4 border border-dashed border-gray-600 rounded-lg">Carregando lista...</div>
+                    </div>
+                    <p id="reorder-status" class="hidden text-sm text-center mt-2"></p>
+                </div>
+
+
+                <div id="media-details-page" class="hidden">
+                    <div id="media-details-content">
+                        <p class="text-center text-primary animate-pulse p-10">Carregando detalhes do item...</p>
+                    </div>
+                </div>
+                
+                <div id="actor-details-page" class="hidden">
+                    <div id="actor-details-content">
+                        <p class="text-center text-primary animate-pulse p-10">Carregando filmografia do ator...</p>
+                    </div>
+                </div>
+                
+                <div id="writer-details-page" class="hidden">
+                    <div id="writer-details-content">
+                        <p class="text-center text-primary animate-pulse p-10">Carregando filmografia do escritor...</p>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        </div>
+
+    <div id="trailer-modal" class="fixed inset-0 z-50 hidden bg-black flex items-center justify-center">
+        <div id="trailer-content" class="w-full h-full">
+        </div>
     </div>
-  </div>
 
-  <script>
-    (function(){
-      const openBtn = document.getElementById('openBtn');
-      const overlay = document.getElementById('trailerModal');
-      const closeBtn = document.getElementById('closeBtn');
-      const iframe = document.getElementById('videoFrame');
-      const videoId = 'mn0QvmEicIY'; 
-      const embedBase = 'https://www.youtube.com/embed/';
+    <script>
+        // API Keys e URLs
+        const TMDB_API_KEY = '014bf3c87afa31a3f1c8f4ad30e1b834'; 
+        const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+        const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
-      function openModal(){
-        // 1. Esconde o botão principal (mais confiável)
-        openBtn.classList.add('hidden'); 
+        // Elementos DOM
+        const appContent = document.getElementById('app-content');
+        const suggestionsPage = document.getElementById('suggestions-page'); 
+        const watchlistPage = document.getElementById('watchlist-page');     
+        const mediaDetailsPage = document.getElementById('media-details-page');
+        const mediaDetailsContent = document.getElementById('media-details-content');
+        const actorDetailsPage = document.getElementById('actor-details-page');
+        const actorDetailsContent = document.getElementById('actor-details-content');
+        // NOVO: Elementos do Escritor
+        const writerDetailsPage = document.getElementById('writer-details-page');
+        const writerDetailsContent = document.getElementById('writer-details-content');
         
-        // 2. Abre o modal e insere o vídeo para iniciar o autoplay
-        const src = embedBase + videoId + '?autoplay=1&rel=0&enablejsapi=1'; 
-        iframe.src = src;
-        overlay.classList.add('show');
+        const backButton = document.getElementById('back-button');
+        const navSuggestionsButton = document.getElementById('nav-suggestions');
+        const navWatchlistButton = document.getElementById('nav-watchlist');
 
-        // 3. Tenta forçar o foco no player para navegadores de TV
-        setTimeout(() => {
-            iframe.focus();
-        }, 50); 
-      }
-
-      function closeModal(){
-        // 1. Mostra o botão principal
-        openBtn.classList.remove('hidden'); 
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+        const resultsContainer = document.getElementById('results-container');
+        const searchResultsTitle = document.getElementById('search-results-title'); 
+        const watchlistResults = document.getElementById('watchlist-results');
+        const trendingContainer = document.getElementById('trending-container');
+        const popularContainer = document.getElementById('popular-container');
+        const topRatedContainer = document.getElementById('top-rated-container');
+        const netflixContainer = document.getElementById('netflix-container'); 
+        const recentReleasesContainer = document.getElementById('recent-releases-container'); 
+        const inTheatersContainer = document.getElementById('in-theaters-container'); // NOVO CONTAINER
+        const reorderStatus = document.getElementById('reorder-status');
+        const filterButtons = document.querySelectorAll('.filter-button');
         
-        // 2. Limpa o src e esconde o modal
-        iframe.src = ''; 
-        overlay.classList.remove('show');
-      }
+        // MUDANÇA: Estado de filtro global para sugestões
+        let globalSuggestionFilter = 'all';
 
-      // 🎧 Event Listeners
-      openBtn.addEventListener('click', openModal);
-      closeBtn.addEventListener('click', closeModal);
-      
-      // Fechar ao clicar no overlay (área escura)
-      overlay.addEventListener('click', e => { 
-        // Apenas fecha se o clique foi diretamente no overlay, e não no iframe ou no botão de fechar
-        if(e.target === overlay) closeModal(); 
-      });
-      
-      // Fechar com a tecla 'Escape'
-      document.addEventListener('keydown', e => { 
-        if(e.key === 'Escape' && overlay.classList.contains('show')) closeModal(); 
-      });
-    })();
-  </script>
+
+        let sortableInstance = null;
+        let currentPage = 'suggestions'; 
+        let watchlistIds = []; 
+        let currentWatchlist = []; 
+        let currentFilter = 'all'; 
+
+        // ===================================================
+        // FUNÇÕES DE NAVEGAÇÃO E ESTADO (LÓGICA DO BOTÃO VOLTAR ATUALIZADA)
+        // ===================================================
+
+        // Nova função pública para navegação
+        function navigate(page, data = null) {
+            // Renderiza a nova página
+            _renderPage(page, data);
+            
+            // Adiciona um novo estado ao histórico
+            try {
+                history.pushState({ page, data }, '', `#${page}`);
+            } catch (e) {
+                console.error("Falha ao usar pushState (provavelmente devido a dados grandes demais):", e);
+                // Fallback: Apenas renderiza sem pushState se falhar
+            }
+        }
+
+        // Nova função para navegação por abas (não empilha no histórico)
+        function navigateTab(page) {
+            const data = null;
+            // Renderiza a nova página
+            _renderPage(page, data);
+            
+            // Substitui o estado atual do histórico
+            const hash = (page === 'suggestions') ? '.' : `#${page}`;
+            try {
+                history.replaceState({ page, data }, '', hash);
+            } catch (e) {
+                 console.error("Falha ao usar replaceState:", e);
+            }
+        }
+
+        // RENOMEADA: Função interna que REALMENTE renderiza a página
+        function _renderPage(page, data = null) {
+            currentPage = page;
+            
+            // Esconde todas as páginas e o botão voltar por padrão
+            suggestionsPage.classList.add('hidden');
+            watchlistPage.classList.add('hidden');
+            mediaDetailsPage.classList.add('hidden');
+            actorDetailsPage.classList.add('hidden');
+            writerDetailsPage.classList.add('hidden'); // NOVO: Esconde a página do escritor
+            backButton.classList.add('hidden');
+            
+            // Reseta os botões de navegação principais
+            navSuggestionsButton.classList.remove('tab-active', 'tab-inactive');
+            navWatchlistButton.classList.remove('tab-active', 'tab-inactive');
+            navSuggestionsButton.classList.add('tab-inactive');
+            navWatchlistButton.classList.add('tab-inactive');
+
+
+            if (page === 'suggestions') {
+                suggestionsPage.classList.remove('hidden');
+                navSuggestionsButton.classList.remove('tab-inactive');
+                navSuggestionsButton.classList.add('tab-active');
+                // MUDANÇA: Carrega a watchlist e, em seguida, as sugestões
+                // A função loadWatchlist(true) agora usa o globalSuggestionFilter
+                loadWatchlist(true); 
+            } else if (page === 'watchlist') {
+                watchlistPage.classList.remove('hidden');
+                navWatchlistButton.classList.remove('tab-inactive');
+                navWatchlistButton.classList.add('tab-active');
+                loadWatchlist(); 
+            } else if (page === 'media-details' && data) {
+                mediaDetailsPage.classList.remove('hidden');
+                backButton.classList.remove('hidden');
+                
+                // ATUALIZADO: O botão voltar agora usa history.back()
+                backButton.onclick = () => history.back();
+                
+                // A origem original (suggestions/watchlist/actor-details) é passada para o load
+                loadMediaDetails(data.tmdb_id, data.media_type, data.origin || 'suggestions');
+                
+            } else if (page === 'actor-details' && data) {
+                actorDetailsPage.classList.remove('hidden');
+                backButton.classList.remove('hidden');
+                
+                // ATUALIZADO: O botão voltar agora usa history.back()
+                backButton.onclick = () => history.back();
+                
+                // A 'origem' original (suggestions/watchlist) é passada em data.mediaDetailsData.origin
+                // CORREÇÃO DO BUG: Passar o objeto 'mediaDetailsData' inteiro para 'loadActorDetails'
+                loadActorDetails(data.actor_id, data.actor_name, data.mediaDetailsData);
+            
+            // NOVO: Bloco para a página do escritor
+            } else if (page === 'writer-details' && data) {
+                writerDetailsPage.classList.remove('hidden');
+                backButton.classList.remove('hidden');
+                
+                // O botão voltar usa history.back()
+                backButton.onclick = () => history.back();
+                
+                // Passa os dados para a nova função
+                loadWriterDetails(data.writer_id, data.writer_name, data.mediaDetailsData);
+            }
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+
+        // ===================================================
+        // FUNÇÕES DE TRAILER (MODAL) - AJUSTADAS PARA FULL-SCREEN
+        // ===================================================
+
+        // FUNÇÃO REFORÇADA PARA GARANTIR FULL-SCREEN E OCULTAÇÃO TOTAL
+        function openTrailerModal(embedUrl) {
+            const modal = document.getElementById('trailer-modal');
+            const content = document.getElementById('trailer-content');
+            
+            // 1. Oculta o scroll do corpo da página para uma experiência full-screen
+            document.body.classList.add('overflow-hidden');
+
+            // 2. Insere o iframe com a nova CLASSE CSS `fullscreen-iframe` e o botão de fechar flutuante.
+            content.innerHTML = `
+                <iframe class="fullscreen-iframe" 
+                        src="${embedUrl}" 
+                        title="YouTube video player"
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" 
+                        allowfullscreen>
+                </iframe>
+                <button id="close-trailer-button" onclick="closeTrailerModal()" class="fixed top-4 right-4 text-white hover:text-gray-300 p-2 bg-black bg-opacity-50 rounded-full transition duration-150" aria-label="Fechar Trailer">
+                    <i class="fas fa-times fa-2x"></i>
+                </button>
+            `;
+            // 3. Remove a classe 'hidden' do modal, que agora tem CSS forçado para 100vw/100vh e z-index 9999.
+            modal.classList.remove('hidden');
+        }
+
+        function closeTrailerModal() {
+            const modal = document.getElementById('trailer-modal');
+            const content = document.getElementById('trailer-content');
+            
+            // 1. Pausa o vídeo e limpa o conteúdo
+            content.innerHTML = '';
+            modal.classList.add('hidden');
+
+            // 2. Restaura o scroll do corpo da página
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        // NOVO: Listener para fechar o trailer com a tecla ESC (Padrão de full-screen)
+        document.addEventListener('keydown', (e) => {
+            const modal = document.getElementById('trailer-modal');
+            // Verifica se o modal está visível e se a tecla pressionada é ESC
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                closeTrailerModal();
+            }
+        });
+
+        async function watchTrailer(tmdbId, mediaType) {
+            try {
+                const url = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}/videos?api_key=${TMDB_API_KEY}&language=pt-BR`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                let trailer = data.results.find(video => 
+                    (video.type === 'Trailer' || video.type === 'Teaser') && video.site === 'YouTube'
+                );
+
+                if (!trailer) {
+                    const enUrl = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}/videos?api_key=${TMDB_API_KEY}&language=en-US`;
+                    const enResponse = await fetch(enUrl);
+                    const enData = await enResponse.json();
+                    trailer = enData.results.find(video => 
+                        (video.type === 'Trailer' || video.type === 'Teaser') && video.site === 'YouTube'
+                    );
+                }
+
+                if (trailer) {
+                    // Adicionado `&autoplay=1` para iniciar o vídeo automaticamente
+                    const embedUrl = `https://www.youtube.com/embed/${trailer.key}?autoplay=1`;
+                    // O openTrailerModal agora lida com o full-screen e o botão de fechar.
+                    openTrailerModal(embedUrl);
+                } else {
+                    // Substituído alert por um console.error para aderir às boas práticas de ambiente
+                    console.error('Trailer não encontrado para este item.'); 
+                    // Em produção, você mostraria um modal customizado
+                    alert('Trailer não encontrado para este item.');
+                }
+            } catch (error) {
+                console.error('Erro ao buscar trailer:', error);
+                alert('Erro ao buscar trailer. Tente novamente mais tarde.');
+            }
+        }
+
+
+        // ===================================================
+        // FUNÇÕES DE UTILIDADE E RENDERIZAÇÃO
+        // ===================================================
+
+        // NOVO: Helper para formatar data (YYYY-MM-DD -> DD/MM/YYYY)
+        function formatFullDate(dateString) {
+            if (!dateString || dateString.length < 10) {
+                return null; // Retorna nulo se a data for inválida ou incompleta
+            }
+            try {
+                // Divide a data "YYYY-MM-DD"
+                const [year, month, day] = dateString.split('-');
+                // Retorna a data formatada "DD/MM/YYYY"
+                return `${day}/${month}/${year}`;
+            } catch (e) {
+                console.error("Erro ao formatar data:", dateString, e);
+                return dateString; // Retorna a string original em caso de erro
+            }
+        }
+        
+        // NOVO: Helper para buscar detalhes de séries (para contagem de episódios)
+        async function fetchTvDetailsForList(tvList) {
+            // Limita a 5 chamadas de detalhes para não estourar a API nos carrosséis
+            const limitedList = tvList.slice(0, 5);
+            
+            const detailedList = await Promise.all(
+                limitedList.map(async (tvItem) => {
+                    // Previne refetch se já tiver os dados
+                    if (tvItem.number_of_seasons !== undefined) return tvItem; 
+                    
+                    try {
+                        const detailsUrl = `${TMDB_BASE_URL}/tv/${tvItem.id}?api_key=${TMDB_API_KEY}&language=pt-BR`;
+                        const detailsResponse = await fetch(detailsUrl);
+                        const details = await detailsResponse.json();
+                        
+                        // Retorna o item original mesclado com os novos detalhes
+                        return {
+                            ...tvItem,
+                            number_of_seasons: details.number_of_seasons,
+                            last_episode_to_air: details.last_episode_to_air,
+                            number_of_episodes: details.number_of_episodes
+                        };
+                    } catch (e) {
+                        console.error(`Erro ao buscar detalhes da série ${tvItem.id}:`, e);
+                        return tvItem; // Retorna o item original em caso de falha
+                    }
+                })
+            );
+            // Retorna a lista detalhada + o resto da lista original (sem detalhes)
+            return [...detailedList, ...tvList.slice(5)];
+        }
+
+
+        // Adicionada currentWatchlistIds como argumento para checagem do botão de adição
+        function displaySearchResults(results, container, displayType = 'list', allowTrailer = true, currentWatchlistIds = []) {
+            container.innerHTML = ''; 
+            
+            const validResults = results.filter(item => 
+                (item.media_type === 'movie' || item.media_type === 'tv')
+            ).slice(0, displayType === 'list' ? 10 : 10); 
+
+            if (validResults.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-center text-gray-500">${displayType === 'list' ? 'Nenhum resultado encontrado.' : 'Nenhuma sugestão encontrada.'}</p>`;
+                return;
+            }
+            
+            let parentContainer;
+            if (displayType === 'list') {
+                parentContainer = document.createElement('div');
+                parentContainer.className = 'space-y-3';
+            } else {
+                parentContainer = document.createElement('div');
+                parentContainer.className = 'suggestions-scroll flex space-x-4';
+            }
+
+            validResults.forEach(item => {
+                const title = item.title || item.name;
+                const releaseDate = item.release_date || item.first_air_date;
+                const type = item.media_type; 
+                // MUDANÇA: Usa a função de data completa
+                const displayDate = formatFullDate(releaseDate) || 'N/A';
+                const typeLabel = type === 'movie' ? 'Filme' : 'Série';
+                const poster = item.poster_path ? `${IMAGE_BASE_URL}${item.poster_path}` : 'https://placehold.co/100x150/4b5563/d1d5db?text=N/A';
+                
+                // Lógica do Status e Avaliação
+                const isAdded = currentWatchlistIds.includes(String(item.id));
+                const rating = item.vote_average ? `${(item.vote_average * 10).toFixed(0)}%` : 'N/A';
+                
+                // AJUSTE 1: Lógica do botão de Adicionar/Remover
+                const buttonHtml = isAdded 
+                    ? '<i class="fas fa-trash-alt"></i><span>Remover</span>' // Se adicionado, mostra Remover
+                    : '<i class="fas fa-plus"></i><span>Adicionar</span>'; // Se não, mostra Adicionar
+                const buttonClass = isAdded
+                    ? 'remove-button bg-danger hover:bg-red-600 transition duration-150' // Classe para remover
+                    : 'add-button bg-success hover:bg-green-600 transition duration-150'; // Classe para adicionar
+
+                const card = document.createElement('div');
+                
+                if (displayType === 'list') {
+                    card.className = 'bg-gray-700 border border-gray-600 rounded-lg shadow-md overflow-hidden flex items-center p-3 transition duration-200 hover:bg-gray-600 space-x-4';
+                    card.setAttribute('data-tmdb-id', item.id);
+                    card.setAttribute('data-media-type', type);
+                    
+                    // ATUALIZADO: Adicionado a origem correta (currentPage) e chama a nova função navigate()
+                    const navigationHtml = `onclick="navigate('media-details', { tmdb_id: ${item.id}, media_type: '${type}', origin: currentPage })"`;
+                    
+                    card.innerHTML = `
+                        <div class="flex-shrink-0 w-16 h-24 flex items-center justify-center cursor-pointer ${navigationHtml} ${!item.poster_path ? 'placeholder-image bg-gray-600' : ''}">
+                            <img src="${poster}" alt="Capa de ${title}" class="search-poster-fit object-contain">
+                        </div>
+                        
+                        <div class="flex-grow flex flex-col sm:flex-row sm:items-center justify-between min-w-0">
+                            <div class="min-w-0 mr-4 cursor-pointer" ${navigationHtml}>
+                                <h3 class="font-bold text-gray-100 watchlist-title">${title}</h3> 
+                                <p class="text-sm text-gray-400">
+                                    ${typeLabel} (${displayDate}) ${item.vote_average ? `<span class="ml-2 text-yellow-400 font-semibold"><i class="fas fa-star text-xs"></i> ${rating}</span>` : ''} 
+                                </p>
+                            </div>
+                            <div class="flex space-x-2 mt-2 sm:mt-0 flex-shrink-0">
+                                ${allowTrailer ? `<button class="trailer-button bg-accent text-gray-900 py-1 px-3 rounded-md hover:bg-yellow-400 transition duration-150 text-sm font-medium flex items-center justify-center space-x-1" data-id="${item.id}" data-type="${type}">
+                                    <i class="fas fa-play"></i><span>Trailer</span>
+                                </button>` : ''}
+                                <button class="action-button text-white py-1 px-3 rounded-md text-sm font-medium flex items-center justify-center space-x-1 ${buttonClass}" 
+                                        data-id="${item.id}" data-title="${title}" data-type="${type}" data-is-added="${isAdded}">
+                                    ${buttonHtml}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Carousel (Suggestions)
+                    card.className = 'suggestion-card bg-gray-700 border border-gray-600 rounded-lg shadow-md overflow-hidden flex flex-col p-3 transition duration-200 hover:bg-gray-600 flex-shrink-0 cursor-pointer';
+                    card.setAttribute('data-tmdb-id', item.id);
+                    card.setAttribute('data-media-type', type);
+
+                    // Simplificado o HTML do botão para o carousel (apenas ícone)
+                    const carouselButtonHtml = isAdded 
+                        ? '<i class="fas fa-trash-alt"></i>' // Ícone de remover
+                        : '<i class="fas fa-plus"></i>'; // Ícone de adicionar
+                    
+                    // ATUALIZADO: Navegação para card no modo carousel (origem é currentPage) e chama a nova função navigate()
+                    const navigationHtml = `onclick="navigate('media-details', { tmdb_id: ${item.id}, media_type: '${type}', origin: currentPage })"`;
+
+                    // AJUSTE 2: Adiciona contagem de episódios/temporadas para Séries
+                    let episodeCountStr = '';
+                    if (type === 'tv' && item.number_of_seasons && item.last_episode_to_air) {
+                        episodeCountStr = ` • ${item.number_of_seasons}x${item.last_episode_to_air.episode_number}`;
+                    } else if (type === 'tv' && item.number_of_seasons) {
+                        episodeCountStr = ` • ${item.number_of_seasons} Temp.`;
+                    }
+                    // FIM DO AJUSTE 2
+
+                    card.innerHTML = `
+                        <div class="relative flex-shrink-0 w-full mb-2 h-auto" ${navigationHtml}>
+                            <img src="${poster}" alt="Capa de ${title}" class="search-poster-fit w-full rounded-md" style="height: 200px; object-fit: cover;">
+                            ${item.vote_average ? `<span class="absolute top-2 right-2 bg-black bg-opacity-70 text-yellow-400 text-xs font-bold px-2 py-1 rounded-full flex items-center space-x-1">
+                                <i class="fas fa-star text-xs"></i><span>${rating}</span>
+                            </span>` : ''}
+                        </div>
+                        
+                        <div class="flex-grow flex flex-col justify-between min-h-0">
+                            <div class="min-w-0 mb-2" ${navigationHtml}>
+                                <h3 class="font-bold text-gray-100 text-sm suggestions-title">${title}</h3> 
+                                <p class="text-xs text-gray-400">${typeLabel} (${displayDate})${episodeCountStr}</p>
+                            </div>
+                            <div class="flex space-x-1 flex-shrink-0">
+                                ${allowTrailer ? `<button class="trailer-button w-1/2 bg-accent text-gray-900 py-1 px-1 rounded-md hover:bg-yellow-400 transition duration-150 text-xs font-medium flex items-center justify-center space-x-1" data-id="${item.id}" data-type="${type}">
+                                    <i class="fas fa-play"></i>
+                                </button>` : ''}
+                                <button class="action-button text-white py-1 px-1 rounded-md text-xs font-medium flex items-center justify-center space-x-1 ${buttonClass} w-full ${allowTrailer ? 'w-1/2' : 'w-full'}" 
+                                        data-id="${item.id}" data-title="${title}" data-type="${type}" data-is-added="${isAdded}">
+                                    ${carouselButtonHtml}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Anexa listeners de clique ao botão de AÇÃO
+                card.querySelector('.action-button').addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    const target = event.currentTarget;
+                    const id = parseInt(target.getAttribute('data-id'));
+                    const itemTitle = target.getAttribute('data-title');
+                    const itemType = target.getAttribute('data-type');
+                    const isCurrentlyAdded = target.getAttribute('data-is-added') === 'true';
+
+                    if (isCurrentlyAdded) {
+                        // REMOVER ITEM
+                        removeFromWatchlist(id, itemTitle, event); 
+                    } else {
+                        // ADICIONAR ITEM
+                        // MUDANÇA: Salva 'release_year' como nulo no banco de dados
+                        // ***** MUDANÇA DE ASSINATURA *****
+                        saveToWatchlist({ 
+                            tmdb_id: id,
+                            title: itemTitle,
+                            poster_path: item.poster_path,
+                            release_year: null, // MUDANÇA: Ignora o ano no BD
+                            media_type: itemType,
+                            vote_average: item.vote_average || null
+                        }, event); // Passa o 'event' como segundo argumento
+                    }
+                });
+
+                if (allowTrailer && card.querySelector('.trailer-button')) {
+                    card.querySelector('.trailer-button').addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        const id = event.currentTarget.getAttribute('data-id');
+                        const type = event.currentTarget.getAttribute('data-type');
+                        watchTrailer(id, type);
+                    });
+                }
+
+                parentContainer.appendChild(card);
+            });
+
+            container.appendChild(parentContainer);
+        }
+
+        // ===================================================
+        // FUNÇÕES DE BUSCA E SUGESTÃO (TMDB)
+        // ===================================================
+
+        async function performSearch() {
+            const query = searchInput.value.trim();
+            
+            // Torna o título e o container visíveis
+            searchResultsTitle.classList.remove('hidden');
+            resultsContainer.classList.remove('hidden');
+
+            if (query === '') {
+                resultsContainer.innerHTML = '<p class="col-span-full text-center text-danger">Por favor, digite um termo de busca.</p>';
+                return;
+            }
+
+            resultsContainer.innerHTML = '<p class="col-span-full text-center text-primary animate-pulse">Buscando no TMDb...</p>';
+            
+            try {
+                // Adicionado 'en-US' como fallback, caso não haja tradução para pt-BR
+                const url = `${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=pt-BR&include_adult=false`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                // Filtra apenas por 'movie' e 'tv'
+                const results = data.results.filter(item => item.media_type === 'movie' || item.media_type === 'tv');
+                
+                if (results.length > 0) {
+                    displaySearchResults(results, resultsContainer, 'list', true, watchlistIds);
+                } else {
+                    resultsContainer.innerHTML = '<p class="col-span-full text-center text-gray-500">Nenhum filme ou série encontrado para sua busca.</p>';
+                }
+
+            } catch (error) {
+                console.error('Erro ao buscar TMDb:', error);
+                resultsContainer.innerHTML = '<p class="col-span-full text-center text-danger">Erro ao realizar a busca. Tente novamente mais tarde.</p>';
+            }
+        }
+        
+        // MUDANÇA: Função para setar o filtro e recarregar
+        function setGlobalSuggestionFilter(mediaFilter) {
+            // 1. Atualiza o estado global e a interface dos botões
+            globalSuggestionFilter = mediaFilter;
+            const filterButtons = document.querySelectorAll('#suggestions-page .suggestions-filter-button');
+            
+            filterButtons.forEach(btn => {
+                btn.classList.remove('suggestions-filter-active');
+                // Adiciona classes inativas se o 'active' não as sobrescrever
+                btn.classList.add('bg-gray-700', 'hover:bg-gray-600', 'text-gray-300');
+
+                if (btn.getAttribute('data-filter') === mediaFilter) {
+                    btn.classList.add('suggestions-filter-active');
+                    // Remove classes inativas se o 'active' não as sobrescrever
+                    btn.classList.remove('bg-gray-700', 'hover:bg-gray-600', 'text-gray-300');
+                }
+            });
+
+            // 2. Recarrega todas as seções de sugestões
+            reloadAllSuggestions();
+        }
+
+        // MUDANÇA: Nova função helper para recarregar todas as sugestões
+        function reloadAllSuggestions() {
+            loadSuggestions('trending', trendingContainer, 'tendências', globalSuggestionFilter);
+            loadSuggestions('netflix_top', netflixContainer, 'Top 10 Netflix', globalSuggestionFilter);
+            loadSuggestions('top_rated', topRatedContainer, 'Top Rated', globalSuggestionFilter);
+            loadSuggestions('recent_releases', recentReleasesContainer, 'lançamentos recentes', globalSuggestionFilter);
+            loadSuggestions('in_theaters', inTheatersContainer, 'filmes no cinema', globalSuggestionFilter); // NOVO
+            loadSuggestions('popular', popularContainer, 'populares', globalSuggestionFilter);
+        }
+
+        // ALTERADA: Função loadSuggestions para receber o mediaFilter
+        async function loadSuggestions(endpoint, container, name, mediaFilter = 'all') {
+            container.innerHTML = `<p class="col-span-full text-center text-primary animate-pulse p-4">Buscando ${name}...</p>`;
+            
+            try {
+                let suggestions = [];
+                let moviesUrl, tvUrl;
+                let numItems = 5; // Busca 5 de cada (total 10)
+
+                // Caso especial para o endpoint 'trending'
+                if (endpoint === 'trending') {
+                    // O endpoint 'trending' é 'all' por padrão. Filtramos o resultado localmente.
+                    const endpointUrl = `${TMDB_BASE_URL}/trending/all/day?api_key=${TMDB_API_KEY}&language=pt-BR`;
+                    const response = await fetch(endpointUrl);
+                    const data = await response.json();
+                    
+                    let trendingMovies = [];
+                    let trendingTv = [];
+
+                    if (mediaFilter === 'all') {
+                        trendingMovies = data.results.filter(item => item.media_type === 'movie').slice(0, numItems);
+                        trendingTv = data.results.filter(item => item.media_type === 'tv').slice(0, numItems);
+                        // AJUSTE 2: Busca detalhes das séries
+                        trendingTv = await fetchTvDetailsForList(trendingTv);
+                        suggestions = [...trendingMovies, ...trendingTv].sort(() => 0.5 - Math.random());
+                    } else if (mediaFilter === 'movie') {
+                        suggestions = data.results.filter(item => item.media_type === 'movie').slice(0, 10);
+                    } else if (mediaFilter === 'tv') {
+                        suggestions = data.results.filter(item => item.media_type === 'tv').slice(0, 10);
+                        // AJUSTE 2: Busca detalhes das séries
+                        suggestions = await fetchTvDetailsForList(suggestions);
+                    }
+
+                } else if (endpoint === 'recent_releases') {
+                    // Endpoint 'recent_releases' usa 'primary_release_date.lte'
+                    moviesUrl = (mediaFilter === 'movie' || mediaFilter === 'all') 
+                        ? `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=primary_release_date.desc&primary_release_date.lte=${new Date().toISOString().split('T')[0]}&vote_count.gte=10&region=BR&include_adult=false` 
+                        : null;
+                        
+                    tvUrl = (mediaFilter === 'tv' || mediaFilter === 'all') 
+                        ? `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=first_air_date.desc&first_air_date.lte=${new Date().toISOString().split('T')[0]}&vote_count.gte=10&include_adult=false` 
+                        : null;
+
+                    const urls = [];
+                    if (moviesUrl) urls.push(fetch(moviesUrl));
+                    if (tvUrl) urls.push(fetch(tvUrl));
+
+                    if (urls.length === 0) {
+                        suggestions = [];
+                    } else {
+                        const responses = await Promise.all(urls);
+                        const data = await Promise.all(responses.map(res => res.json()));
+                        
+                        let recentMovies = [];
+                        let recentTv = [];
+                        
+                        if (mediaFilter === 'movie' && moviesUrl) {
+                            recentMovies = data[0].results.slice(0, 10).map(item => ({...item, media_type: 'movie'}));
+                            suggestions = recentMovies;
+                        } else if (mediaFilter === 'tv' && tvUrl) {
+                            const tvData = (moviesUrl && tvUrl) ? data[1] : data[0];
+                            if (tvData) {
+                                recentTv = tvData.results.slice(0, 10).map(item => ({...item, media_type: 'tv'}));
+                                // AJUSTE 2: Busca detalhes das séries
+                                recentTv = await fetchTvDetailsForList(recentTv);
+                            }
+                            suggestions = recentTv;
+                        } else if (mediaFilter === 'all') {
+                            recentMovies = data[0].results.slice(0, numItems).map(item => ({...item, media_type: 'movie'}));
+                            recentTv = data[1].results.slice(0, numItems).map(item => ({...item, media_type: 'tv'}));
+                            // AJUSTE 2: Busca detalhes das séries
+                            recentTv = await fetchTvDetailsForList(recentTv);
+                            suggestions = [...recentMovies, ...recentTv].sort(() => 0.5 - Math.random());
+                        }
+                    }
+
+                } else if (endpoint === 'in_theaters') {
+                    // NOVO ENDPOINT: Filmes no Cinema
+                    if (mediaFilter === 'tv') {
+                        suggestions = [];
+                    } else {
+                        moviesUrl = `${TMDB_BASE_URL}/movie/now_playing?api_key=${TMDB_API_KEY}&language=pt-BR&region=BR&include_adult=false`;
+                        const response = await fetch(moviesUrl);
+                        const data = await response.json();
+                        suggestions = data.results.slice(0, 10).map(item => ({...item, media_type: 'movie'}));
+                    }
+
+                } else if (endpoint === 'top_rated' || endpoint === 'popular' || endpoint === 'netflix_top') {
+                    
+                    if (mediaFilter === 'movie' || mediaFilter === 'all') {
+                        if (endpoint === 'netflix_top') {
+                             moviesUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=popularity.desc&with_watch_providers=8&watch_region=BR&include_adult=false&vote_count.gte=50&with_original_language=en`;
+                        } else if (endpoint === 'top_rated') {
+                            moviesUrl = `${TMDB_BASE_URL}/movie/top_rated?api_key=${TMDB_API_KEY}&language=pt-BR&include_adult=false&region=BR`;
+                        } else if (endpoint === 'popular') {
+                            moviesUrl = `${TMDB_BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&language=pt-BR&include_adult=false&region=BR`;
+                        }
+                    }
+
+                    if (mediaFilter === 'tv' || mediaFilter === 'all') {
+                        if (endpoint === 'netflix_top') {
+                            tvUrl = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=popularity.desc&with_watch_providers=8&watch_region=BR&include_adult=false&vote_count.gte=50&with_original_language=en`;
+                        } else if (endpoint === 'top_rated') {
+                            tvUrl = `${TMDB_BASE_URL}/tv/top_rated?api_key=${TMDB_API_KEY}&language=pt-BR&include_adult=false`;
+                        } else if (endpoint === 'popular') {
+                            tvUrl = `${TMDB_BASE_URL}/tv/popular?api_key=${TMDB_API_KEY}&language=pt-BR&include_adult=false`;
+                        }
+                    }
+                    
+                    const urls = [];
+                    if (moviesUrl) urls.push(fetch(moviesUrl));
+                    if (tvUrl) urls.push(fetch(tvUrl));
+                    
+                    if (urls.length === 0) {
+                        suggestions = [];
+                    } else {
+                        const responses = await Promise.all(urls);
+                        const data = await Promise.all(responses.map(res => res.json()));
+
+                        let fetchedMovies = [];
+                        let fetchedTv = [];
+                        
+                        if (mediaFilter === 'movie' && moviesUrl) {
+                            fetchedMovies = data[0].results.slice(0, 10).map(item => ({...item, media_type: 'movie'}));
+                            suggestions = fetchedMovies;
+                        } else if (mediaFilter === 'tv' && tvUrl) {
+                            const tvData = (moviesUrl && tvUrl) ? data[1] : data[0];
+                            if (tvData) {
+                                fetchedTv = tvData.results.slice(0, 10).map(item => ({...item, media_type: 'tv'}));
+                                // AJUSTE 2: Busca detalhes das séries
+                                fetchedTv = await fetchTvDetailsForList(fetchedTv);
+                            }
+                            suggestions = fetchedTv;
+                        } else if (mediaFilter === 'all') {
+                            fetchedMovies = data[0].results.slice(0, numItems).map(item => ({...item, media_type: 'movie'}));
+                            fetchedTv = data[1].results.slice(0, numItems).map(item => ({...item, media_type: 'tv'}));
+                            // AJUSTE 2: Busca detalhes das séries
+                            fetchedTv = await fetchTvDetailsForList(fetchedTv);
+                            suggestions = [...fetchedMovies, ...fetchedTv].sort(() => 0.5 - Math.random());
+                        }
+                    }
+
+                }
+
+                // 3. Renderiza o carrossel usando a função displaySearchResults
+                displaySearchResults(suggestions, container, 'carousel', true, watchlistIds);
+
+            } catch (error) {
+                console.error(`Erro ao buscar ${name} do TMDb:`, error);
+                container.innerHTML = `<p class="col-span-full text-center text-danger">Erro ao carregar ${name}.</p>`;
+            }
+        }
+
+        // ===================================================
+        // FUNÇÕES DE DETALHES DE MÍDIA E ATOR (AJUSTADAS PARA O BOTÃO VOLTAR)
+        // ===================================================
+
+        async function loadMediaDetails(tmdbId, mediaType, originPage) {
+            mediaDetailsContent.innerHTML = '<p class="text-center text-primary animate-pulse p-10">Carregando detalhes do item...</p>';
+            
+            try {
+                const detailsUrl = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}?api_key=${TMDB_API_KEY}&language=pt-BR`;
+                const creditsUrl = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}/credits?api_key=${TMDB_API_KEY}`;
+                
+                const [detailsResponse, creditsResponse] = await Promise.all([fetch(detailsUrl), fetch(creditsUrl)]);
+                const [details, credits] = await Promise.all([detailsResponse.json(), creditsResponse.json()]);
+
+                const title = details.title || details.name;
+                const releaseDate = details.release_date || details.first_air_date;
+                // MUDANÇA: Usa a função de data completa
+                const displayDate = formatFullDate(releaseDate) || 'N/A';
+                const poster = details.poster_path ? `${IMAGE_BASE_URL}${details.poster_path}` : 'https://placehold.co/300x450/4b5563/d1d5db?text=N/A';
+                const overview = details.overview || 'Sinopse não disponível em Português.';
+                const cast = credits.cast.slice(0, 10);
+                const ratingPercent = details.vote_average ? `${(details.vote_average * 10).toFixed(0)}%` : 'N/A';
+                const ratingValue = details.vote_average ? details.vote_average.toFixed(1) : 'N/A';
+                
+                // ***** INÍCIO DA MUDANÇA REQUISITADA *****
+                // 1. Verifica se o item já está na lista
+                const isItemInWatchlist = watchlistIds.includes(String(tmdbId));
+                
+                // 2. Cria o HTML do botão de AÇÃO
+                const actionButtonId = `action-button-${tmdbId}`;
+                const action = isItemInWatchlist ? 'remove' : 'add';
+                const buttonClass = isItemInWatchlist ? 'bg-danger hover:bg-red-600' : 'bg-success hover:bg-green-600';
+                const buttonHtml = isItemInWatchlist ? '<i class="fas fa-trash-alt"></i> <span>Remover da Lista</span>' : '<i class="fas fa-plus"></i> <span>Adicionar à Lista</span>';
+                
+                const actionButtonHtml = `
+                    <button id="${actionButtonId}" 
+                            class="text-white py-3 px-6 rounded-lg transition duration-150 text-lg font-semibold flex items-center justify-center space-x-2 w-full sm:w-auto shadow-lg ${buttonClass}"
+                            data-tmdb-id="${tmdbId}"
+                            data-media-type="${mediaType}"
+                            data-action="${action}"
+                            data-poster="${details.poster_path}"
+                            data-vote="${details.vote_average}">
+                        ${buttonHtml}
+                    </button>
+                `;
+                // ***** FIM DA MUDANÇA REQUISITADA *****
+
+                // AJUSTE 3: Detalhes de Séries (Temporadas/Episódios)
+                let seasonsHtml = '';
+                let episodeCountStr = '';
+
+                if (mediaType === 'tv') {
+                    // Adiciona a contagem de temporadas/episódios ao texto de descrição
+                    const numSeasons = details.number_of_seasons;
+                    const numEpisodes = details.number_of_episodes;
+                    episodeCountStr = numSeasons ? ` • ${numSeasons} Temp.` : '';
+                    episodeCountStr = numEpisodes ? episodeCountStr + ` • ${numEpisodes} Episódios` : episodeCountStr;
+
+
+                    if (details.seasons && details.seasons.length > 0) {
+                        // Filtra as temporadas especiais e que ainda não foram lançadas
+                        const validSeasons = details.seasons
+                            .filter(s => s.season_number > 0 && s.episode_count > 0);
+                        
+                        // Busca detalhes da primeira temporada para mostrar os episódios (só se houver temporadas válidas)
+                        if (validSeasons.length > 0) {
+                            try {
+                                const latestSeasonNumber = validSeasons[validSeasons.length - 1].season_number;
+                                const seasonDetailsUrl = `${TMDB_BASE_URL}/tv/${tmdbId}/season/${latestSeasonNumber}?api_key=${TMDB_API_KEY}&language=pt-BR`;
+                                const seasonDetailsResponse = await fetch(seasonDetailsUrl);
+                                const season = await seasonDetailsResponse.json();
+                                
+                                if (season.episodes && season.episodes.length > 0) {
+                                    seasonsHtml = '<h3 class="text-xl font-semibold text-gray-300 mt-6 mb-3">Episódios</h3>';
+                                    seasonsHtml += `<div class="bg-gray-700 p-4 rounded-lg shadow-inner">`;
+                                    seasonsHtml += `<h4 class="text-lg font-bold text-white mb-3">${season.name || 'Temporada ' + season.season_number} (${season.episodes.length} episódios)</h4>`;
+                                    seasonsHtml += '<ul class="space-y-3 max-h-60 overflow-y-auto pr-2">'; // Adiciona scroll vertical
+                                    for (const episode of season.episodes) {
+                                        const epDate = formatFullDate(episode.air_date) || 'N/A';
+                                        seasonsHtml += `
+                                            <li class="flex flex-col sm:flex-row justify-between text-sm text-gray-300 border-b border-gray-600 pb-2">
+                                                <span class="font-semibold truncate pr-2">
+                                                    <span class="text-primary font-bold">${episode.episode_number}.</span> ${episode.name || 'Episódio ' + episode.episode_number}
+                                                </span>
+                                                <span class="text-xs text-gray-400 flex-shrink-0 pt-1 sm:pt-0">${epDate}</span>
+                                            </li>
+                                        `;
+                                    }
+                                    seasonsHtml += '</ul></div>';
+                                    
+                                    // Adiciona um link para todas as temporadas, se houver mais de uma temporada válida.
+                                    if (validSeasons.length > 1) {
+                                        seasonsHtml += `<p class="text-sm text-center mt-2 text-primary cursor-pointer hover:text-blue-400" onclick="alert('Funcionalidade completa de lista de temporadas não implementada. Esta seção mostra apenas a mais recente.')">Ver todas as ${validSeasons.length} temporadas...</p>`;
+                                    }
+                                }
+                            } catch (e) {
+                                console.error("Erro ao buscar detalhes da temporada mais recente:", e);
+                                seasonsHtml = '<p class="text-danger">Não foi possível carregar a lista de episódios.</p>';
+                            }
+                        }
+                    }
+                } // FIM DO AJUSTE 3
+
+                // NOVO: Encontrar Escritores (Roteiristas)
+                let writers = credits.crew 
+                    .filter(person => person.department === 'Writing' && (person.job === 'Writer' || person.job === 'Screenplay' || person.job === 'Creator'))
+                    .slice(0, 3);
+                    
+                let writersHtml = '';
+                if (writers.length > 0) {
+                    writersHtml = `
+                        <h3 class="text-xl font-semibold text-gray-300 mt-6 mb-3">${writers.length > 1 ? 'Escritores/Criadores' : 'Escritor/Criador'}</h3>
+                        <div class="flex flex-wrap gap-4">
+                            ${writers.map(writer => {
+                                // Escapa aspas simples no nome do escritor para o JSON
+                                const safeWriterName = writer.name.replace(/'/g, "\\'");
+                                return `
+                                    <div class="text-center cursor-pointer hover:text-primary transition duration-150" 
+                                         onclick="navigate('writer-details', { 
+                                            writer_id: ${writer.id}, 
+                                            writer_name: '${safeWriterName}', 
+                                            mediaDetailsData: { tmdb_id: ${tmdbId}, media_type: '${mediaType}', origin: originPage } 
+                                         })">
+                                        <div class="w-20 h-20 overflow-hidden rounded-full mx-auto border-2 border-gray-600 hover:border-primary transition duration-150">
+                                            <img src="${writer.profile_path ? `${IMAGE_BASE_URL}${writer.profile_path}` : 'https://placehold.co/100x100/4b5563/d1d5db?text=N/A'}" 
+                                                 alt="${writer.name}" class="w-full h-full object-cover">
+                                        </div>
+                                        <p class="text-sm font-medium mt-1 text-gray-300">${writer.name}</p>
+                                        <p class="text-xs text-gray-500">${writer.job}</p>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }
+                // FIM DO NOVO: Encontrar Escritores (Roteiristas)
+
+
+                // Renderiza o conteúdo
+                mediaDetailsContent.innerHTML = `
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex-shrink-0 w-full md:w-80">
+                            <img src="${poster}" alt="Capa de ${title}" class="w-full h-auto object-cover rounded-lg shadow-xl">
+                        </div>
+                        <div class="flex-grow">
+                            <h2 class="text-3xl font-bold text-white mb-2">${title}</h2>
+                            <p class="text-lg text-gray-400 mb-4">${details.tagline || ''}</p>
+                            
+                            <div class="flex flex-wrap text-sm mb-4 gap-2">
+                                <span class="bg-primary text-white px-3 py-1 rounded-full"><i class="fas fa-calendar"></i> ${displayDate}</span>
+                                <span class="bg-green-700 text-white px-3 py-1 rounded-full"><i class="fas fa-star"></i> ${ratingValue} (${ratingPercent})</span>
+                                <span class="bg-gray-700 text-gray-300 px-3 py-1 rounded-full">${mediaType === 'movie' ? 'Filme' : 'Série'}${episodeCountStr}</span>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mt-6 mb-4">
+                                <button onclick="watchTrailer(${tmdbId}, '${mediaType}')" class="bg-accent text-gray-900 py-3 px-6 rounded-lg hover:bg-yellow-400 transition duration-150 text-lg font-semibold flex items-center justify-center space-x-2 w-full sm:w-auto shadow-lg">
+                                    <i class="fas fa-play"></i> <span>Assistir Trailer</span>
+                                </button>
+                                ${actionButtonHtml}
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Sinopse</h3>
+                            <p class="text-gray-400">${overview}</p>
+
+                            ${writersHtml}
+
+                            <h3 class="text-xl font-semibold text-gray-300 mt-6 mb-3">Elenco Principal</h3>
+                            <div id="cast-list" class="flex flex-wrap gap-4">
+                                ${cast.map(actor => {
+                                    // Escapa aspas simples no nome do ator para o JSON
+                                    const safeActorName = actor.name.replace(/'/g, "\\'");
+                                    
+                                    return `
+                                        <div class="text-center cursor-pointer hover:text-primary transition duration-150" 
+                                            onclick="navigate('actor-details', { 
+                                                actor_id: ${actor.id}, 
+                                                actor_name: '${safeActorName}', 
+                                                mediaDetailsData: { tmdb_id: ${tmdbId}, media_type: '${mediaType}', origin: originPage } 
+                                            })">
+                                            <div class="w-20 h-20 overflow-hidden rounded-full mx-auto border-2 border-gray-600 hover:border-primary transition duration-150">
+                                                <img src="${actor.profile_path ? `${IMAGE_BASE_URL}${actor.profile_path}` : 'https://placehold.co/100x100/4b5563/d1d5db?text=N/A'}" 
+                                                     alt="${actor.name}" class="w-full h-full object-cover">
+                                            </div>
+                                            <p class="text-sm font-medium mt-1 text-gray-300">${actor.name}</p>
+                                            <p class="text-xs text-gray-500">${actor.character}</p>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            
+                            ${seasonsHtml}
+                        </div>
+                    </div>
+                `;
+
+                // ***** INÍCIO DA MUDANÇA REQUISITADA: Adiciona o listener ao botão de AÇÃO dinâmico *****
+                const actionButton = document.getElementById(actionButtonId);
+                actionButton.addEventListener('click', async (event) => {
+                    event.stopPropagation();
+                    const button = event.currentTarget;
+                    button.disabled = true;
+                    button.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span>Aguarde...</span>';
+
+                    const tmdbId = parseInt(button.getAttribute('data-tmdb-id'));
+                    const mediaType = button.getAttribute('data-media-type');
+                    const action = button.getAttribute('data-action');
+
+                    if (action === 'remove') {
+                        try {
+                            // 1. Chama a função de remover (sem evento)
+                            await removeFromWatchlist(tmdbId, title, null); 
+
+                            // 2. Atualiza este botão manualmente
+                            button.innerHTML = '<i class="fas fa-plus"></i> <span>Adicionar à Lista</span>';
+                            button.classList.remove('bg-danger', 'hover:bg-red-600');
+                            button.classList.add('bg-success', 'hover:bg-green-600');
+                            button.setAttribute('data-action', 'add');
+                            button.disabled = false;
+                            
+                            // 3. Atualiza o estado global
+                            watchlistIds = watchlistIds.filter(id => id !== String(tmdbId));
+                        } catch (e) {
+                            console.error("Erro ao remover (details):", e);
+                            button.innerHTML = '<i class="fas fa-trash-alt"></i> <span>Remover da Lista</span>'; // Reverte
+                            button.disabled = false;
+                            alert('Falha ao remover: ' + e.message);
+                        }
+                    } else { // action === 'add'
+                        const item = {
+                            tmdb_id: tmdbId,
+                            title: title,
+                            poster_path: button.getAttribute('data-poster'),
+                            release_year: null, // Conforme lógica existente
+                            media_type: mediaType,
+                            vote_average: parseFloat(button.getAttribute('data-vote')) || null
+                        };
+
+                        try {
+                            // 1. Chama a função de salvar (sem evento)
+                            await saveToWatchlist(item, null); 
+
+                            // 2. Atualiza este botão manualmente
+                            button.innerHTML = '<i class="fas fa-trash-alt"></i> <span>Remover da Lista</span>';
+                            button.classList.remove('bg-success', 'hover:bg-green-600');
+                            button.classList.add('bg-danger', 'hover:bg-red-600');
+                            button.setAttribute('data-action', 'remove');
+                            button.disabled = false;
+
+                            // 3. Atualiza o estado global
+                            if (!watchlistIds.includes(String(tmdbId))) {
+                                watchlistIds.push(String(tmdbId));
+                            }
+                        } catch (e) {
+                            console.error("Erro ao adicionar (details):", e);
+                            button.innerHTML = '<i class="fas fa-plus"></i> <span>Adicionar à Lista</span>'; // Reverte
+                            button.disabled = false;
+                            alert('Falha ao adicionar: ' + e.message);
+                        }
+                    }
+                });
+                // ***** FIM DA MUDANÇA REQUISITADA *****
+
+            } catch (error) {
+                console.error('Erro ao carregar detalhes da mídia:', error);
+                mediaDetailsContent.innerHTML = '<p class="text-center text-danger p-10">Erro ao carregar detalhes do item.</p>';
+            }
+        }
+
+        // CORREÇÃO DO BUG: A assinatura da função mudou de 'originPage' (string) para 'mediaDetailsData' (objeto)
+        async function loadActorDetails(actorId, actorName, mediaDetailsData) {
+            actorDetailsContent.innerHTML = '<p class="text-center text-primary animate-pulse p-10">Carregando filmografia do ator...</p>';
+
+            try {
+                const actorUrl = `${TMDB_BASE_URL}/person/${actorId}?api_key=${TMDB_API_KEY}&language=pt-BR`;
+                const filmographyUrl = `${TMDB_BASE_URL}/person/${actorId}/combined_credits?api_key=${TMDB_API_KEY}&language=pt-BR`;
+
+                const [actorResponse, filmographyResponse] = await Promise.all([fetch(actorUrl), fetch(filmographyUrl)]);
+                const [actorDetails, filmographyDetails] = await Promise.all([actorResponse.json(), filmographyResponse.json()]);
+
+                const profilePicture = actorDetails.profile_path ? `${IMAGE_BASE_URL}${actorDetails.profile_path}` : 'https://placehold.co/300x450/4b5563/d1d5db?text=N/A';
+                const bio = actorDetails.biography || 'Biografia não disponível em Português.';
+                const birthday = formatFullDate(actorDetails.birthday) || 'N/A';
+                const deathday = actorDetails.deathday ? formatFullDate(actorDetails.deathday) : 'Vivo';
+                const placeOfBirth = actorDetails.place_of_birth || 'N/A';
+                
+                // Filtra os trabalhos mais conhecidos (com score maior que 1.0 e tipo filme ou TV)
+                let knownFor = filmographyDetails.cast
+                    .filter(item => item.vote_average > 1.0) 
+                    .sort((a, b) => b.popularity - a.popularity)
+                    .slice(0, 10);
+                
+                // Remove duplicatas de filmes/séries (caso apareça em 'cast' e 'crew' ou por erro)
+                const uniqueIds = new Set();
+                const uniqueKnownFor = knownFor.filter(item => {
+                    if (uniqueIds.has(item.id)) {
+                        return false;
+                    }
+                    uniqueIds.add(item.id);
+                    return true;
+                });
+
+                // Renderiza o conteúdo
+                actorDetailsContent.innerHTML = `
+                    <div class="flex flex-col md:flex-row gap-6 mb-8">
+                        <div class="flex-shrink-0 w-full md:w-64">
+                            <img src="${profilePicture}" alt="Foto de ${actorName}" class="w-full h-auto object-cover rounded-lg shadow-xl">
+                        </div>
+                        <div class="flex-grow">
+                            <h2 class="text-3xl font-bold text-white mb-4">${actorName}</h2>
+                            <div class="flex flex-wrap text-sm mb-4 gap-4">
+                                <span class="bg-primary text-white px-3 py-1 rounded-full"><i class="fas fa-birthday-cake"></i> Nascimento: ${birthday}</span>
+                                <span class="bg-gray-700 text-gray-300 px-3 py-1 rounded-full"><i class="fas fa-map-marker-alt"></i> Local: ${placeOfBirth}</span>
+                                <span class="bg-gray-700 text-gray-300 px-3 py-1 rounded-full"><i class="fas fa-skull"></i> Falecimento: ${deathday}</span>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Biografia</h3>
+                            <p class="text-gray-400 text-sm max-h-48 overflow-auto">${bio}</p>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-xl font-semibold text-gray-300 mt-6 mb-4">Filmografia Selecionada (${uniqueKnownFor.length} Títulos Encontrados)</h3>
+                    <div id="actor-filmography" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                        ${uniqueKnownFor.map(item => {
+                            const title = item.title || item.name;
+                            const poster = item.poster_path ? `${IMAGE_BASE_URL}${item.poster_path}` : 'https://placehold.co/150x225/4b5563/d1d5db?text=N/A';
+                            const mediaType = item.media_type;
+                            // MUDANÇA: Usa a função de data completa
+                            const releaseDate = item.release_date || item.first_air_date;
+                            const displayDate = formatFullDate(releaseDate) || 'N/A';
+                            
+                            // Escapa aspas no nome do ator para o JSON
+                            const safeActorName = actorName.replace(/'/g, "\\'");
+
+                            return `
+                                <div class="text-center cursor-pointer hover:scale-105 transition-transform duration-200" 
+                                     onclick="navigate('media-details', { 
+                                         tmdb_id: ${item.id}, 
+                                         media_type: '${mediaType}', 
+                                         origin: 'actor-details', 
+                                         actorDetailsData: { 
+                                            actor_id: ${actorId}, 
+                                            actor_name: '${safeActorName}', 
+                                            /* CORREÇÃO DO BUG: Passa o objeto 'mediaDetailsData' anterior */
+                                            /* Isso garante que o botão 'voltar' na página do ator funcione */
+                                            mediaDetailsData: { tmdb_id: ${mediaDetailsData.tmdb_id}, media_type: '${mediaDetailsData.media_type}', origin: '${mediaDetailsData.origin}' }
+                                         } 
+                                     })">
+                                    <div class="relative w-full h-auto">
+                                        <img src="${poster}" alt="${title}" class="w-full h-auto object-cover rounded-lg shadow-md mb-1">
+                                        ${item.vote_average ? `<span class="absolute top-1 left-1 bg-black bg-opacity-70 text-yellow-400 text-xs font-bold px-1 py-0.5 rounded-full flex items-center">
+                                            <i class="fas fa-star text-xs mr-0.5"></i>${(item.vote_average * 10).toFixed(0)}%
+                                        </span>` : ''}
+                                    </div>
+                                    <p class="text-sm text-gray-200 font-medium suggestions-title w-full mt-1">${title}</p>
+                                    <p class="text-xs text-gray-400">${mediaType === 'movie' ? 'Filme' : 'Série'} (${displayDate})</p>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Erro ao carregar detalhes do ator:', error);
+                actorDetailsContent.innerHTML = '<p class="text-center text-danger p-10">Erro ao carregar detalhes do ator.</p>';
+            }
+        }
+        
+        // NOVO: Função loadWriterDetails (Filmografia do Escritor)
+        async function loadWriterDetails(writerId, writerName, mediaDetailsData) {
+            writerDetailsContent.innerHTML = '<p class="text-center text-primary animate-pulse p-10">Carregando filmografia do escritor...</p>';
+
+            try {
+                const writerUrl = `${TMDB_BASE_URL}/person/${writerId}?api_key=${TMDB_API_KEY}&language=pt-BR`;
+                const filmographyUrl = `${TMDB_BASE_URL}/person/${writerId}/combined_credits?api_key=${TMDB_API_KEY}&language=pt-BR`;
+
+                const [writerResponse, filmographyResponse] = await Promise.all([fetch(writerUrl), fetch(filmographyUrl)]);
+                const [writerDetails, filmographyDetails] = await Promise.all([writerResponse.json(), filmographyResponse.json()]);
+
+                const profilePicture = writerDetails.profile_path ? `${IMAGE_BASE_URL}${writerDetails.profile_path}` : 'https://placehold.co/300x450/4b5563/d1d5db?text=N/A';
+                const bio = writerDetails.biography || 'Biografia não disponível em Português.';
+                const birthday = formatFullDate(writerDetails.birthday) || 'N/A';
+                const deathday = writerDetails.deathday ? formatFullDate(writerDetails.deathday) : 'Vivo';
+                const placeOfBirth = writerDetails.place_of_birth || 'N/A';
+                
+                // Filtra os trabalhos onde a pessoa tem a função de 'Writing' e/ou 'Creator'
+                let knownFor = filmographyDetails.crew.filter(item => 
+                    item.department === 'Writing' || item.job === 'Creator'
+                ).sort((a, b) => b.popularity - a.popularity);
+                
+                // Remove duplicatas e garante que seja filme ou série
+                const uniqueIds = new Set();
+                const uniqueKnownFor = knownFor.filter(item => {
+                    if ((item.media_type !== 'movie' && item.media_type !== 'tv') || uniqueIds.has(item.id)) {
+                        return false;
+                    }
+                    uniqueIds.add(item.id);
+                    return true;
+                });
+
+                // Renderiza o conteúdo
+                writerDetailsContent.innerHTML = `
+                    <div class="flex flex-col md:flex-row gap-6 mb-8">
+                        <div class="flex-shrink-0 w-full md:w-64">
+                            <img src="${profilePicture}" alt="Foto de ${writerName}" class="w-full h-auto object-cover rounded-lg shadow-xl">
+                        </div>
+                        <div class="flex-grow">
+                            <h2 class="text-3xl font-bold text-white mb-4">${writerName}</h2>
+                            <div class="flex flex-wrap text-sm mb-4 gap-4">
+                                <span class="bg-primary text-white px-3 py-1 rounded-full"><i class="fas fa-birthday-cake"></i> Nascimento: ${birthday}</span>
+                                <span class="bg-gray-700 text-gray-300 px-3 py-1 rounded-full"><i class="fas fa-map-marker-alt"></i> Local: ${placeOfBirth}</span>
+                                <span class="bg-gray-700 text-gray-300 px-3 py-1 rounded-full"><i class="fas fa-skull"></i> Falecimento: ${deathday}</span>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Biografia</h3>
+                            <p class="text-gray-400 text-sm max-h-48 overflow-auto">${bio}</p>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-xl font-semibold text-gray-300 mt-6 mb-4">Trabalhos como Escritor(a) (${uniqueKnownFor.length} Títulos Encontrados)</h3>
+                    <div id="writer-filmography" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                        ${uniqueKnownFor.map(item => {
+                            const title = item.title || item.name;
+                            const poster = item.poster_path ? `${IMAGE_BASE_URL}${item.poster_path}` : 'https://placehold.co/150x225/4b5563/d1d5db?text=N/A';
+                            const mediaType = item.media_type;
+                            const releaseDate = item.release_date || item.first_air_date;
+                            const displayDate = formatFullDate(releaseDate) || 'N/A';
+                            
+                            // Escapa aspas no nome do escritor para o JSON
+                            const safeWriterName = writerName.replace(/'/g, "\\'");
+
+                            return `
+                                <div class="text-center cursor-pointer hover:scale-105 transition-transform duration-200" 
+                                     onclick="navigate('media-details', { 
+                                         tmdb_id: ${item.id}, 
+                                         media_type: '${mediaType}', 
+                                         origin: 'writer-details', 
+                                         writerDetailsData: { 
+                                            writer_id: ${writerId}, 
+                                            writer_name: '${safeWriterName}', 
+                                            mediaDetailsData: { tmdb_id: ${mediaDetailsData.tmdb_id}, media_type: '${mediaDetailsData.media_type}', origin: '${mediaDetailsData.origin}' }
+                                         } 
+                                     })">
+                                    <div class="relative w-full h-auto">
+                                        <img src="${poster}" alt="${title}" class="w-full h-auto object-cover rounded-lg shadow-md mb-1">
+                                        ${item.vote_average ? `<span class="absolute top-1 left-1 bg-black bg-opacity-70 text-yellow-400 text-xs font-bold px-1 py-0.5 rounded-full flex items-center">
+                                            <i class="fas fa-star text-xs mr-0.5"></i>${(item.vote_average * 10).toFixed(0)}%
+                                        </span>` : ''}
+                                    </div>
+                                    <p class="text-sm text-gray-200 font-medium suggestions-title w-full mt-1">${title}</p>
+                                    <p class="text-xs text-gray-400">${mediaType === 'movie' ? 'Filme' : 'Série'} (${displayDate})</p>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Erro ao carregar detalhes do escritor:', error);
+                writerDetailsContent.innerHTML = '<p class="text-center text-danger p-10">Erro ao carregar detalhes do escritor.</p>';
+            }
+        }
+
+
+        // ===================================================
+        // FUNÇÕES DE WATCHLIST (AJAX, STORAGE e SORTABLE)
+        // ===================================================
+
+        // FUNÇÃO AJUSTADA PARA PEGAR A VOTE_AVERAGE ATUALIZADA E A DATA COMPLETA DA API DO TMDB
+        async function loadWatchlist(loadSuggestionsToo = false) {
+            
+            // 1. Tenta buscar a lista do Pages Function (Backend)
+            // Se falhar, usa a lista salva localmente (cache local)
+            // O código do backend foi omitido, assumimos que esta parte funciona
+            const savedWatchlist = localStorage.getItem('watchlist');
+            const initialWatchlist = savedWatchlist ? JSON.parse(savedWatchlist) : [];
+            
+            try {
+                const response = await fetch('/api/watchlist');
+                if (!response.ok) {
+                    throw new Error(`Erro ${response.status}: Falha ao carregar a lista do backend.`);
+                }
+                const data = await response.json();
+                
+                // Se o backend retornar sucesso, usa a lista atualizada
+                currentWatchlist = data.watchlist.map(item => ({
+                    ...item,
+                    tmdb_id: parseInt(item.tmdb_id), // Garante que seja número
+                    // Adiciona campos vazios para serem preenchidos pela API do TMDB
+                    poster_path: item.poster_path || null,
+                    vote_average: item.vote_average || null,
+                    release_date: item.release_date || null
+                }));
+                
+                // Atualiza o cache local
+                localStorage.setItem('watchlist', JSON.stringify(currentWatchlist));
+
+            } catch (error) {
+                console.warn('Usando lista em cache local devido a erro do backend:', error.message);
+                currentWatchlist = initialWatchlist;
+                if (currentWatchlist.length > 0 && currentPage === 'watchlist') {
+                    watchlistResults.innerHTML = '<p class="col-span-full text-center text-accent p-4 border border-dashed border-gray-600 rounded-lg"><i class="fas fa-exclamation-triangle mr-2"></i> Lista carregada do cache local. Pode estar desatualizada.</p>';
+                } else if (currentPage === 'watchlist') {
+                    watchlistResults.innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 border border-dashed border-gray-600 rounded-lg">Sua lista está vazia. Adicione itens na aba "Sugestões".</p>';
+                }
+            }
+            
+            // 2. Busca detalhes atualizados (data, nota, poster) no TMDB para cada item
+            // Esta etapa é crucial para a função filterWatchlist e displaySearchResults funcionar corretamente.
+            const fetchDetailsPromises = currentWatchlist.map(async (item) => {
+                const apiType = item.media_type === 'movie' ? 'movie' : 'tv';
+                try {
+                    const detailsUrl = `${TMDB_BASE_URL}/${apiType}/${item.tmdb_id}?api_key=${TMDB_API_KEY}&language=pt-BR`;
+                    const response = await fetch(detailsUrl);
+                    const details = await response.json();
+                    
+                    // Atualiza os campos relevantes com os dados mais recentes do TMDB
+                    item.poster_path = details.poster_path;
+                    item.vote_average = details.vote_average;
+                    // Adiciona a data de lançamento ou primeira exibição
+                    item.release_date = details.release_date || details.first_air_date || null;
+                    
+                    // AJUSTE 5: Adiciona contagem de episódios/temporadas para Séries
+                    if (item.media_type === 'tv') {
+                        item.number_of_seasons = details.number_of_seasons;
+                        item.last_episode_to_air = details.last_episode_to_air;
+                    }
+                    // FIM DO AJUSTE 5
+
+                } catch (e) {
+                    console.error(`Falha ao buscar detalhes do item ${item.tmdb_id}:`, e);
+                    // Se falhar, mantém os dados antigos (ou nulos)
+                    item.release_date = null;
+                }
+                return item; // Retorna o item (com ou sem dados atualizados)
+            });
+
+            // Aguarda todas as buscas de detalhes
+            currentWatchlist = await Promise.all(fetchDetailsPromises);
+            watchlistIds = currentWatchlist.map(item => String(item.tmdb_id)); // Atualiza o array de IDs
+
+            // 3. Renderiza a lista se estiver na página "Minha Lista"
+            if (currentPage === 'watchlist') {
+                filterWatchlist(currentFilter);
+            }
+            
+            // MUDANÇA: Usa a nova função helper
+            if (loadSuggestionsToo) {
+                reloadAllSuggestions();
+            }
+
+        }
+
+        // FUNÇÃO AJUSTADA PARA MOSTRAR A NOTA NA CAPA E A DATA COMPLETA
+        function filterWatchlist(filterType) {
+            currentFilter = filterType;
+
+            // Atualiza o visual dos botões
+            filterButtons.forEach(button => {
+                const buttonFilter = button.getAttribute('data-filter');
+                if (buttonFilter === filterType) {
+                    button.className = 'filter-button bg-primary text-white px-4 py-2 rounded-lg font-medium transition duration-150';
+                } else {
+                    button.className = 'filter-button bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg font-medium transition duration-150';
+                }
+            });
+
+            let filteredList = currentWatchlist;
+            if (filterType !== 'all') {
+                filteredList = currentWatchlist.filter(item => item.media_type === filterType);
+            }
+
+            watchlistResults.innerHTML = ''; // Limpa a lista antes de renderizar
+
+            if (filteredList.length === 0) {
+                watchlistResults.innerHTML = `<p class="col-span-full text-center text-gray-500 p-4 border border-dashed border-gray-600 rounded-lg">Nenhum ${filterType === 'movie' ? 'filme' : filterType === 'tv' ? 'série' : 'item'} encontrado na lista.</p>`;
+                initSortable(); // Destrói o sortable se não houver itens
+                return;
+            }
+
+            filteredList.forEach(item => {
+                const title = item.title;
+                const releaseDate = item.release_date;
+                const type = item.media_type;
+                const typeLabel = type === 'movie' ? 'Filme' : 'Série';
+                // MUDANÇA: Usa a função de data completa
+                const displayDate = formatFullDate(releaseDate) || 'N/A'; 
+                const poster = item.poster_path ? `${IMAGE_BASE_URL}${item.poster_path}` : 'https://placehold.co/100x150/4b5563/d1d5db?text=N/A';
+                
+                // AJUSTE 4: Lógica do Rating
+                const rating = item.vote_average ? `${(item.vote_average * 10).toFixed(0)}%` : 'N/A';
+                
+                // AJUSTE 5: Lógica de contagem de episódios/temporadas
+                let episodeCountStr = '';
+                if (item.media_type === 'tv' && item.number_of_seasons && item.last_episode_to_air) {
+                    episodeCountStr = ` • ${item.number_of_seasons}x${item.last_episode_to_air.episode_number}`;
+                } else if (item.media_type === 'tv' && item.number_of_seasons) {
+                    episodeCountStr = ` • ${item.number_of_seasons} Temp.`;
+                }
+                // FIM DO AJUSTE 5
+
+                const card = document.createElement('div');
+                card.className = 'watchlist-item bg-gray-700 border border-gray-600 rounded-xl shadow-md overflow-hidden flex items-start p-3 transition duration-200 hover:bg-gray-600 space-x-4';
+                card.setAttribute('data-tmdb-id', item.tmdb_id);
+
+                // ATUALIZADO: Adicionado a função de navegação no bloco da imagem e no bloco de texto
+                const navigationHtml = `onclick="navigate('media-details', { tmdb_id: ${item.tmdb_id}, media_type: '${item.media_type}', origin: 'watchlist' })"`;
+
+                card.innerHTML = `
+                    <div class="flex-shrink-0 w-20 h-30 flex items-center justify-center relative cursor-pointer ${navigationHtml}">
+                        <img src="${poster}" alt="Capa de ${title}" class="poster-fit object-contain w-full h-full rounded-lg">
+                        ${item.vote_average ? `<span class="absolute top-1 left-1 bg-black bg-opacity-70 text-yellow-400 text-xs font-bold px-1 py-0.5 rounded-full flex items-center">
+                            <i class="fas fa-star text-xs mr-0.5"></i>${(item.vote_average * 10).toFixed(0)}%
+                        </span>` : ''}
+                    </div>
+                    
+                    <div class="flex-grow flex flex-col justify-between min-w-0">
+                        <div class="min-w-0 mr-4 cursor-pointer" ${navigationHtml}>
+                            <h3 class="font-bold text-gray-100 watchlist-title">${title}</h3> 
+                            <p class="text-sm text-gray-400">
+                                ${typeLabel} (${displayDate})${episodeCountStr} </p>
+                        </div>
+                        <div class="flex space-x-2 mt-3 flex-shrink-0">
+                            <button class="trailer-button bg-accent text-gray-900 py-1 px-3 rounded-md hover:bg-yellow-400 transition duration-150 text-sm font-medium flex items-center justify-center space-x-1" data-id="${item.tmdb_id}" data-type="${type}">
+                                <i class="fas fa-play"></i><span>Trailer</span>
+                            </button>
+                            <button class="remove-button bg-danger hover:bg-red-600 text-white py-1 px-3 rounded-md transition duration-150 text-sm font-medium flex items-center justify-center space-x-1" 
+                                    data-id="${item.tmdb_id}" data-title="${title}">
+                                <i class="fas fa-trash-alt"></i><span>Remover</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Anexa listeners de clique
+                card.querySelector('.remove-button').addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    const id = parseInt(event.currentTarget.getAttribute('data-id'));
+                    const itemTitle = event.currentTarget.getAttribute('data-title');
+                    removeFromWatchlist(id, itemTitle, event);
+                });
+
+                card.querySelector('.trailer-button').addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    const id = event.currentTarget.getAttribute('data-id');
+                    const type = event.currentTarget.getAttribute('data-type');
+                    watchTrailer(id, type);
+                });
+
+                watchlistResults.appendChild(card);
+            });
+            
+            // Inicializa o SortableJS após o carregamento da lista
+            initSortable(); 
+        }
+
+        async function saveToWatchlist(itemData, event) {
+            if (event) event.currentTarget.disabled = true;
+            
+            const itemTitle = itemData.title;
+            const apiType = itemData.media_type;
+
+            try {
+                const response = await fetch('/api/watchlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(itemData),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Falha ao adicionar o item no backend.');
+                }
+                
+                // Atualiza a lista local e a interface
+                await loadWatchlist(true); 
+
+                // Feedback visual de sucesso
+                const successMessage = `<p class="text-center text-success mt-2">"${itemTitle}" adicionado(a) à sua lista!</p>`;
+                if (event) {
+                    const card = event.currentTarget.closest('.suggestion-card, .flex-grow');
+                    if (card) {
+                         const tempMsg = document.createElement('div');
+                         tempMsg.innerHTML = successMessage;
+                         card.appendChild(tempMsg.firstChild);
+                         setTimeout(() => tempMsg.remove(), 1500);
+                    }
+                } else {
+                    // Se for na página de detalhes, faz o feedback de outra forma
+                    console.log(`"${itemTitle}" adicionado(a) com sucesso.`);
+                }
+                
+            } catch (error) {
+                console.error('ERRO AO SALVAR:', error);
+                alert('Erro ao adicionar à lista. Verifique a configuração do Pages Function (Backend).');
+            } finally {
+                 if (event) event.currentTarget.disabled = false;
+            }
+        }
+
+        async function removeFromWatchlist(tmdbId, title, event) {
+            if (event) event.currentTarget.disabled = true;
+            
+            try {
+                const response = await fetch('/api/watchlist', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tmdb_id: tmdbId }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Falha ao remover o item no backend.');
+                }
+
+                // Atualiza a lista local e a interface
+                await loadWatchlist(true); 
+
+                // Feedback visual de sucesso
+                const successMessage = `<p class="text-center text-danger mt-2">"${title}" removido(a) da sua lista.</p>`;
+                if (event) {
+                    const card = event.currentTarget.closest('.watchlist-item') || event.currentTarget.closest('.suggestion-card, .flex-grow');
+                    if (card) {
+                        // Se estiver na lista principal, a lista recarrega automaticamente
+                        if (card.classList.contains('watchlist-item')) {
+                            // O loadWatchlist já chamou o filterWatchlist, então o item já sumiu.
+                        } else {
+                            // Se estiver nas sugestões/resultados de busca
+                            const tempMsg = document.createElement('div');
+                            tempMsg.innerHTML = successMessage;
+                            card.appendChild(tempMsg.firstChild);
+                            setTimeout(() => tempMsg.remove(), 1500);
+                            
+                            // Força a atualização do botão
+                            const actionButton = card.querySelector('.action-button');
+                            if (actionButton) {
+                                actionButton.innerHTML = '<i class="fas fa-plus"></i><span>Adicionar</span>';
+                                actionButton.classList.remove('bg-danger', 'hover:bg-red-600');
+                                actionButton.classList.add('bg-success', 'hover:bg-green-600');
+                                actionButton.setAttribute('data-is-added', 'false');
+                            }
+                        }
+                    }
+                } else {
+                    // Se for na página de detalhes, faz o feedback de outra forma
+                    console.log(`"${title}" removido(a) com sucesso.`);
+                }
+                
+            } catch (error) {
+                console.error('ERRO AO REMOVER:', error);
+                alert('Erro ao remover da lista. Verifique a configuração do Pages Function (Backend).');
+            } finally {
+                if (event) event.currentTarget.disabled = false;
+            }
+        }
+
+        async function updateWatchlistOrder(newOrder) {
+            reorderStatus.textContent = 'Salvando nova ordem...';
+            reorderStatus.className = 'text-sm text-center text-primary mt-2';
+            reorderStatus.classList.remove('hidden');
+
+            // Mapeia a nova ordem para a lista atual
+            const newOrderMap = newOrder.reduce((acc, tmdb_id, index) => {
+                acc[tmdb_id] = index;
+                return acc;
+            }, {});
+
+            try {
+                const response = await fetch('/api/watchlist/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_order_ids: newOrder }),
+                });
+
+                if (response.ok) {
+                    reorderStatus.textContent = 'Ordem salva com sucesso!';
+                    reorderStatus.className = 'text-sm text-center text-success mt-2';
+                    // Atualiza a lista local com a nova ordem
+                    currentWatchlist.sort((a, b) => newOrderMap[a.tmdb_id] - newOrderMap[b.tmdb_id]);
+                    setTimeout(() => reorderStatus.classList.add('hidden'), 1500);
+                } else {
+                    const result = await response.json();
+                    throw new Error(result.error || 'Falha ao salvar a ordem no backend.');
+                }
+            } catch (e) {
+                console.error('ERRO DE REORDENAÇÃO:', e);
+                reorderStatus.textContent = `Erro ao salvar a ordem: ${e.message}. Verifique o arquivo functions/api/watchlist.js.`;
+                reorderStatus.className = 'text-sm text-center text-danger mt-2';
+                reorderStatus.classList.remove('hidden');
+                setTimeout(() => reorderStatus.classList.add('hidden'), 5000);
+                filterWatchlist(currentFilter); // Recarrega com a ordem antiga ou do backend
+            }
+        }
+
+        function initSortable() {
+            if (sortableInstance) {
+                sortableInstance.destroy();
+            }
+
+            // Só inicializa o Sortable se houver itens para ordenar E o filtro for 'all'
+            if (watchlistResults.children.length > 0 && currentFilter === 'all') {
+                sortableInstance = Sortable.create(watchlistResults, {
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    handle: '.watchlist-item',
+                    delay: 200,
+                    delayOnTouchOnly: true,
+                    forceFallback: true,
+                    onEnd: function (evt) {
+                        const newOrder = Array.from(watchlistResults.children)
+                            .map(item => item.getAttribute('data-tmdb-id'))
+                            .filter(id => id !== null);
+                        updateWatchlistOrder(newOrder);
+                    },
+                });
+            } else {
+                sortableInstance = null; // Garante que a variável esteja limpa se não for inicializada
+            }
+        }
+
+        // ===================================================
+        // INICIALIZAÇÃO
+        // ===================================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Lógica para lidar com o histórico (Voltar/Avançar)
+            let initialPage = 'suggestions';
+            let initialState = { page: initialPage, data: null };
+
+            if (window.location.hash) {
+                const hashPage = window.location.hash.substring(1);
+                if (hashPage === 'watchlist' || hashPage === 'suggestions') {
+                    initialPage = hashPage;
+                    initialState = { page: hashPage, data: null };
+                }
+                // Não permite carregar 'details' direto pelo hash por simplicidade
+            }
+            
+            _renderPage(initialState.page, initialState.data);
+            history.replaceState(initialState, '', window.location.hash || '.');
+
+
+            
+            // Adiciona listeners aos botões de filtro
+            filterButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    filterWatchlist(e.currentTarget.getAttribute('data-filter'));
+                });
+            });
+
+            // Adiciona o listener de popstate
+            window.addEventListener('popstate', (event) => {
+                if (event.state) {
+                    _renderPage(event.state.page, event.state.data);
+                } else {
+                    // Se o estado for nulo (ex: voltou além do nosso histórico)
+                    _renderPage('suggestions', null); 
+                }
+            });
+        });
+
+        searchButton.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+    </script>
 </body>
 </html>
