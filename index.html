@@ -3,21 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Trailer — Tela Cheia</title>
+  <title>Trailer — Tela Cheia - TV Fix</title>
   <style>
     /* Cores e Reset Básico */
     :root{--primary:#3b82f6}
     *{box-sizing:border-box;margin:0;padding:0}
 
-    /* 1. Modo Escuro e Centralização do Botão Principal */
+    /* 1. Modo Escuro e Container Flex para Centralização */
     body{
       font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
       background:#000; /* Fundo totalmente preto */
       color:#fff;
-      display:flex;
+      display:flex; /* Usa flexbox para centralizar */
       align-items:center;
       justify-content:center;
       height:100vh; /* Ocupa 100% da altura da viewport */
+      width: 100vw; /* Ocupa 100% da largura da viewport */
+      position: relative; /* Necessário para posicionar o modal */
     }
 
     /* Botão Principal */
@@ -39,26 +41,29 @@
         background: #2563eb;
     }
     
-    /* CLASSE NOVA E SIMPLIFICADA PARA ESCONDER O BOTÃO (MAIS CONFIÁVEL EM TVS) */
+    /* CLASSE PARA ESCONDER O BOTÃO: SIMPLES E CONFIÁVEL */
     .btn.hidden {
-        display: none; 
+        display: none !important; 
     }
 
-    /* 3. Overlay (Vídeo) Ocupa 100% da Tela */
+    /* 3. Overlay (Vídeo) AGORA POSICIONADO ABSOLUTO E INICIALMENTE ESCONDIDO */
+    /* Usamos absolute/fixed para garantir que cubra 100% da tela */
     .overlay{
-      position:fixed;
+      position:fixed; /* Mudança de lógica: Usar fixed é geralmente mais robusto para tela cheia */
       inset:0;
-      display:none;
+      display:none; /* Inicialmente escondido */
       align-items:center;
       justify-content:center;
-      background:rgba(0,0,0,1); /* Fundo totalmente opaco para tela cheia */
+      background:rgba(0,0,0,1); 
       z-index:1000;
+      width: 100%;
+      height: 100%;
     }
     .overlay.show{
       display:flex;
     }
 
-    /* Ajuste para que o modal e o video-wrap ocupem 100% do overlay */
+    /* O restante da lógica de expansão permanece para garantir o 100% */
     .modal{
       width:100%;
       height:100%;
@@ -68,17 +73,12 @@
       align-items:center;
     }
 
-    /* O wrapper do vídeo agora também ocupa 100% para o iframe se expandir */
     .video-wrap{
       position:relative;
       width:100%;
       height:100%;
       background:#000;
-      display: none; /* Esconde até o clique */
-    }
-    
-    .overlay.show .video-wrap{
-      display: block; /* Mostra quando o overlay está ativo */
+      /* Ocultado pelo .overlay (display:none), não precisamos ocultar aqui */
     }
     
     /* O Iframe (o vídeo) preenche totalmente o wrap (que é 100% da tela) */
@@ -95,15 +95,15 @@
       position:absolute;
       top:20px;
       right:30px;
-      background:rgba(255, 255, 255, 0.2); /* Fundo semi-transparente */
+      background:rgba(255, 255, 255, 0.2); 
       border:2px solid rgba(255, 255, 255, 0.5);
       color:#fff;
       font-size:20px;
       line-height:1;
       padding:10px 16px;
-      border-radius:50%; /* Botão redondo */
+      border-radius:50%; 
       cursor:pointer;
-      z-index:10000;
+      z-index:10001; /* Z-index ligeiramente maior que o overlay */
       transition: background 0.3s, transform 0.2s;
     }
     .close-btn:hover {
@@ -140,25 +140,26 @@
       const embedBase = 'https://www.youtube.com/embed/';
 
       function openModal(){
-        // PASSO CRUCIAL 1: Esconde o botão principal de forma simples
+        // 1. Esconde o botão principal (mais confiável)
         openBtn.classList.add('hidden'); 
         
+        // 2. Abre o modal e insere o vídeo para iniciar o autoplay
         const src = embedBase + videoId + '?autoplay=1&rel=0&enablejsapi=1'; 
         iframe.src = src;
         overlay.classList.add('show');
 
-        // PASSO CRUCIAL 2: Tenta focar o iframe para que o player da TV seja ativado
-        // Isso é essencial para que o vídeo realmente apareça após o play automático
+        // 3. Tenta forçar o foco no player para navegadores de TV
         setTimeout(() => {
             iframe.focus();
-        }, 50); // Pequeno atraso para garantir que o elemento esteja visível
+        }, 50); 
       }
 
       function closeModal(){
-        // PASSO CRUCIAL 3: Mostra o botão principal novamente
+        // 1. Mostra o botão principal
         openBtn.classList.remove('hidden'); 
         
-        iframe.src = ''; // Limpa o src para parar o vídeo
+        // 2. Limpa o src e esconde o modal
+        iframe.src = ''; 
         overlay.classList.remove('show');
       }
 
@@ -168,6 +169,7 @@
       
       // Fechar ao clicar no overlay (área escura)
       overlay.addEventListener('click', e => { 
+        // Apenas fecha se o clique foi diretamente no overlay, e não no iframe ou no botão de fechar
         if(e.target === overlay) closeModal(); 
       });
       
