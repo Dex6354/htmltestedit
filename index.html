@@ -53,13 +53,18 @@
 
         /* Estilos do SortableJS e arrastar/soltar */
         .watchlist-item {
+            /* O cursor grab agora é aplicado no item todo */
             cursor: grab;
             transition: all 0.2s ease-in-out;
             touch-action: manipulation; 
         }
         .watchlist-item:active {
-            cursor: grabbing;
+            cursor: grabbing; /* Aplicado ao item durante o arrasto */
         }
+        /* REMOVIDO: Estilo para o botão de mover */
+        /* .drag-handle-button { ... } */
+        /* .drag-handle-button:active { ... } */
+
         .sortable-ghost {
             opacity: 0.4;
             background-color: #4b5563;
@@ -333,7 +338,7 @@
                     <h2 class="text-xl font-semibold mb-4 text-gray-200 flex items-center space-x-2">
                         <i class="fas fa-list-ul text-success"></i>
                         <span>Itens para Assistir</span>
-                        <span class="text-sm text-gray-400 ml-2 hidden sm:inline">(Clique e segure para arrastar e reordenar)</span>
+                        <span class="text-sm text-gray-400 ml-2 hidden sm:inline">(Clique e segure para reordenar)</span>
                     </h2>
                     
                     <div class="flex space-x-2 mb-4">
@@ -665,13 +670,16 @@
         }
 
 
+        // ===================================================
+        // ***** INÍCIO DA CORREÇÃO - Event Listeners *****
+        // ===================================================
         // Adicionada currentWatchlistIds como argumento para checagem do botão de adição
         function displaySearchResults(results, container, displayType = 'list', allowTrailer = true, currentWatchlistIds = []) {
             container.innerHTML = ''; 
             
             const validResults = results.filter(item => 
                 (item.media_type === 'movie' || item.media_type === 'tv')
-            ).slice(0, displayType === 'list' ? 10 : 10); 
+            ).slice(0, displayType === 'list' ? 10 : 20); // Ajuste para 20 no carrossel (lista de busca mantém 10)
 
             if (validResults.length === 0) {
                 container.innerHTML = `<p class="col-span-full text-center text-gray-500">${displayType === 'list' ? 'Nenhum resultado encontrado.' : 'Nenhuma sugestão encontrada.'}</p>`;
@@ -711,20 +719,20 @@
                 const card = document.createElement('div');
                 
                 if (displayType === 'list') {
-                    card.className = 'bg-gray-700 border border-gray-600 rounded-lg shadow-md overflow-hidden flex items-center p-3 transition duration-200 hover:bg-gray-600 space-x-4';
+                    // Card de Lista (Busca)
+                    card.className = 'bg-gray-700 border border-gray-600 rounded-lg shadow-md overflow-hidden flex items-center p-3 transition duration-200 hover:bg-gray-600 space-x-4 cursor-pointer';
                     card.setAttribute('data-tmdb-id', item.id);
                     card.setAttribute('data-media-type', type);
                     
-                    // ATUALIZADO: Adicionado a origem correta (currentPage) e chama a nova função navigate()
-                    const navigationHtml = `onclick="navigate('media-details', { tmdb_id: ${item.id}, media_type: '${type}', origin: currentPage })"`;
+                    // ATUALIZADO: Removido onclick daqui
                     
                     card.innerHTML = `
-                        <div class="flex-shrink-0 w-16 h-24 flex items-center justify-center cursor-pointer ${navigationHtml} ${!item.poster_path ? 'placeholder-image bg-gray-600' : ''}">
+                        <div class="flex-shrink-0 w-16 h-24 flex items-center justify-center ${!item.poster_path ? 'placeholder-image bg-gray-600' : ''}">
                             <img src="${poster}" alt="Capa de ${title}" class="search-poster-fit object-contain">
                         </div>
                         
                         <div class="flex-grow flex flex-col sm:flex-row sm:items-center justify-between min-w-0">
-                            <div class="min-w-0 mr-4 cursor-pointer" ${navigationHtml}>
+                            <div class="min-w-0 mr-4">
                                 <h3 class="font-bold text-gray-100 watchlist-title">${title}</h3> 
                                 <p class="text-sm text-gray-400">
                                     ${typeLabel} (${displayDate}) ${item.vote_average ? `<span class="ml-2 text-yellow-400 font-semibold"><i class="fas fa-star text-xs"></i> ${rating}</span>` : ''} 
@@ -742,7 +750,7 @@
                         </div>
                     `;
                 } else {
-                    // Carousel (Suggestions)
+                    // Card de Carousel (Sugestões)
                     card.className = 'suggestion-card bg-gray-700 border border-gray-600 rounded-lg shadow-md overflow-hidden flex flex-col p-3 transition duration-200 hover:bg-gray-600 flex-shrink-0 cursor-pointer';
                     card.setAttribute('data-tmdb-id', item.id);
                     card.setAttribute('data-media-type', type);
@@ -752,8 +760,8 @@
                         ? '<i class="fas fa-trash-alt"></i>' // Ícone de remover
                         : '<i class="fas fa-plus"></i>'; // Ícone de adicionar
                     
-                    // ATUALIZADO: Navegação para card no modo carousel (origem é currentPage) e chama a nova função navigate()
-                    const navigationHtml = `onclick="navigate('media-details', { tmdb_id: ${item.id}, media_type: '${type}', origin: currentPage })"`;
+                    // ATUALIZADO: Removido onclick daqui
+                    // const navigationHtml = `onclick="navigate('media-details', { tmdb_id: ${item.id}, media_type: '${type}', origin: currentPage })"`;
 
                     // AJUSTE 2: Adiciona contagem de episódios/temporadas para Séries
                     let episodeCountStr = '';
@@ -765,7 +773,7 @@
                     // FIM DO AJUSTE 2
 
                     card.innerHTML = `
-                        <div class="relative flex-shrink-0 w-full mb-2 h-auto" ${navigationHtml}>
+                        <div class="relative flex-shrink-0 w-full mb-2 h-auto">
                             <img src="${poster}" alt="Capa de ${title}" class="search-poster-fit w-full rounded-md" style="height: 200px; object-fit: cover;">
                             ${item.vote_average ? `<span class="absolute top-2 right-2 bg-black bg-opacity-70 text-yellow-400 text-xs font-bold px-2 py-1 rounded-full flex items-center space-x-1">
                                 <i class="fas fa-star text-xs"></i><span>${rating}</span>
@@ -773,7 +781,7 @@
                         </div>
                         
                         <div class="flex-grow flex flex-col justify-between min-h-0">
-                            <div class="min-w-0 mb-2" ${navigationHtml}>
+                            <div class="min-w-0 mb-2">
                                 <h3 class="font-bold text-gray-100 text-sm suggestions-title">${title}</h3> 
                                 <p class="text-xs text-gray-400">${typeLabel} (${displayDate})${episodeCountStr}</p>
                             </div>
@@ -790,9 +798,18 @@
                     `;
                 }
                 
-                // Anexa listeners de clique ao botão de AÇÃO
+                // ===============================================
+                // ***** INÍCIO DA CORREÇÃO - Event Listeners *****
+                // ===============================================
+
+                // 1. Adiciona o listener de NAVEGAÇÃO ao card principal
+                card.addEventListener('click', () => {
+                    navigate('media-details', { tmdb_id: item.id, media_type: type, origin: currentPage });
+                });
+
+                // 2. Adiciona o listener de AÇÃO (Add/Remove) com stopPropagation
                 card.querySelector('.action-button').addEventListener('click', (event) => {
-                    event.stopPropagation();
+                    event.stopPropagation(); // Impede que o clique no botão ative o clique do card
                     const target = event.currentTarget;
                     const id = parseInt(target.getAttribute('data-id'));
                     const itemTitle = target.getAttribute('data-title');
@@ -800,36 +817,40 @@
                     const isCurrentlyAdded = target.getAttribute('data-is-added') === 'true';
 
                     if (isCurrentlyAdded) {
-                        // REMOVER ITEM
                         removeFromWatchlist(id, itemTitle, event); 
                     } else {
-                        // ADICIONAR ITEM
-                        // MUDANÇA: Salva 'release_year' como nulo no banco de dados
-                        // ***** MUDANÇA DE ASSINATURA *****
                         saveToWatchlist({ 
                             tmdb_id: id,
                             title: itemTitle,
                             poster_path: item.poster_path,
-                            release_year: null, // MUDANÇA: Ignora o ano no BD
+                            release_year: null, 
                             media_type: itemType,
                             vote_average: item.vote_average || null
-                        }, event); // Passa o 'event' como segundo argumento
+                        }, event); 
                     }
                 });
 
+                // 3. Adiciona o listener de TRAILER com stopPropagation
                 if (allowTrailer && card.querySelector('.trailer-button')) {
                     card.querySelector('.trailer-button').addEventListener('click', (event) => {
-                        event.stopPropagation();
+                        event.stopPropagation(); // Impede que o clique no botão ative o clique do card
                         const id = event.currentTarget.getAttribute('data-id');
                         const type = event.currentTarget.getAttribute('data-type');
                         watchTrailer(id, type);
                     });
                 }
                 
+                // ===============================================
+                // ***** FIM DA CORREÇÃO - Event Listeners *****
+                // ===============================================
+                
                 parentContainer.appendChild(card);
             });
             container.appendChild(parentContainer);
         }
+        // ===================================================
+        // ***** FIM DA SEÇÃO CORRIGIDA *****
+        // ===================================================
 
         // ===================================================
         // FUNÇÕES DE BUSCA E SUGESTÃO (TMDB)
@@ -918,7 +939,8 @@
             try {
                 let suggestions = [];
                 let moviesUrl, tvUrl;
-                let numItems = 5; // Busca 5 de cada (total 10)
+                // AJUSTE 1: numItems é 10 (para 10 filmes + 10 séries = 20 total no filtro 'all')
+                let numItems = 10; 
 
                 // Caso especial para o endpoint 'trending'
                 if (endpoint === 'trending') {
@@ -931,16 +953,18 @@
                     let trendingTv = [];
 
                     if (mediaFilter === 'all') {
-                        trendingMovies = data.results.filter(item => item.media_type === 'movie').slice(0, numItems);
-                        trendingTv = data.results.filter(item => item.media_type === 'tv').slice(0, numItems);
+                        trendingMovies = data.results.filter(item => item.media_type === 'movie').slice(0, numItems); // 10
+                        trendingTv = data.results.filter(item => item.media_type === 'tv').slice(0, numItems); // 10
                         // AJUSTE 2: Busca detalhes das séries
                         trendingTv = await fetchTvDetailsForList(trendingTv);
-                        suggestions = [...trendingMovies, ...trendingTv];
+                        suggestions = [...trendingMovies, ...trendingTv]; // 20 total
                     } else if (mediaFilter === 'movie') {
-                        trendingMovies = data.results.filter(item => item.media_type === 'movie').slice(0, 10);
+                        // AJUSTE 1: Mudar de 10 para 20
+                        trendingMovies = data.results.filter(item => item.media_type === 'movie').slice(0, 20);
                         suggestions = trendingMovies;
                     } else { // 'tv'
-                        trendingTv = data.results.filter(item => item.media_type === 'tv').slice(0, 10);
+                        // AJUSTE 1: Mudar de 10 para 20
+                        trendingTv = data.results.filter(item => item.media_type === 'tv').slice(0, 20);
                         // AJUSTE 2: Busca detalhes das séries
                         trendingTv = await fetchTvDetailsForList(trendingTv);
                         suggestions = trendingTv;
@@ -953,7 +977,7 @@
                         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
                         const dateStart = sixMonthsAgo.toISOString().split('T')[0];
                         const dateEnd = new Date().toISOString().split('T')[0];
-                        moviesUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=pt-BR&region=BR&sort_by=popularity.desc&primary_release_date.gte=${dateStart}&primary_release_date.lte=${dateEnd}&include_adult=false`;
+                        moviesUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=pt-BR&region=BR&sort_by=primary_release_date.desc&primary_release_date.lte=${dateEnd}&vote_count.gte=10&include_adult=false`;
                     }
                     
                     if (mediaFilter === 'tv' || mediaFilter === 'all') {
@@ -961,7 +985,9 @@
                         threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
                         const dateStartTV = threeMonthsAgo.toISOString().split('T')[0];
                         const dateEndTV = new Date().toISOString().split('T')[0];
-                        tvUrl = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=popularity.desc&first_air_date.gte=${dateStartTV}&first_air_date.lte=${dateEndTV}&include_adult=false`;
+                        // ***** INÍCIO DA MUDANÇA REQUISITADA Lançamentos Recentes*****
+                        tvUrl = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=first_air_date.desc&first_air_date.lte=${dateEndTV}&vote_count.gte=10&include_adult=false`;
+                        // ***** FIM DA MUDANÇA REQUISITADA Lançamentos Recentes*****
                     }
                     
                     const fetchPromises = [];
@@ -975,22 +1001,24 @@
                     let recentTv = [];
                     
                     if (mediaFilter === 'movie' && moviesUrl) {
-                         recentMovies = data[0].results.slice(0, 10).map(item => ({...item, media_type: 'movie'}));
+                         // AJUSTE 1: Mudar de 10 para 20
+                         recentMovies = data[0].results.slice(0, 20).map(item => ({...item, media_type: 'movie'}));
                          suggestions = recentMovies;
                     } else if (mediaFilter === 'tv' && tvUrl) {
                          const tvData = (moviesUrl && tvUrl) ? data[1] : data[0]; 
                          if (tvData) {
-                            recentTv = tvData.results.slice(0, 10).map(item => ({...item, media_type: 'tv'})); 
+                            // AJUSTE 1: Mudar de 10 para 20
+                            recentTv = tvData.results.slice(0, 20).map(item => ({...item, media_type: 'tv'})); 
                             // AJUSTE 2: Busca detalhes das séries
                             recentTv = await fetchTvDetailsForList(recentTv);
                          }
                          suggestions = recentTv;
                     } else if (mediaFilter === 'all') { 
-                         recentMovies = data[0].results.slice(0, numItems).map(item => ({...item, media_type: 'movie'})); 
-                         recentTv = data[1].results.slice(0, numItems).map(item => ({...item, media_type: 'tv'})); 
+                         recentMovies = data[0].results.slice(0, numItems).map(item => ({...item, media_type: 'movie'})); // 10
+                         recentTv = data[1].results.slice(0, numItems).map(item => ({...item, media_type: 'tv'})); // 10
                          // AJUSTE 2: Busca detalhes das séries
                          recentTv = await fetchTvDetailsForList(recentTv);
-                         suggestions = [...recentMovies, ...recentTv].sort(() => 0.5 - Math.random());
+                         suggestions = [...recentMovies, ...recentTv].sort(() => 0.5 - Math.random()); // 20 total
                     }
                     
                 } else if (endpoint === 'in_theaters') { // NOVO ENDPOINT: Filmes no Cinema
@@ -1001,7 +1029,8 @@
                         moviesUrl = `${TMDB_BASE_URL}/movie/now_playing?api_key=${TMDB_API_KEY}&language=pt-BR&region=BR&include_adult=false`;
                         const response = await fetch(moviesUrl);
                         const data = await response.json();
-                        suggestions = data.results.slice(0, 10).map(item => ({...item, media_type: 'movie'}));
+                        // AJUSTE 1: Mudar de 10 para 20
+                        suggestions = data.results.slice(0, 20).map(item => ({...item, media_type: 'movie'}));
                     }
                     
                 } else if (endpoint === 'top_rated' || endpoint === 'popular' || endpoint === 'netflix_top') {
@@ -1032,22 +1061,24 @@
                     let popularTv = [];
                     
                     if (mediaFilter === 'movie' && moviesUrl) {
-                         popularMovies = data[0].results.slice(0, 10).map(item => ({...item, media_type: 'movie'}));
+                         // AJUSTE 1: Mudar de 10 para 20
+                         popularMovies = data[0].results.slice(0, 20).map(item => ({...item, media_type: 'movie'}));
                          suggestions = popularMovies;
                     } else if (mediaFilter === 'tv' && tvUrl) {
                          const tvData = (moviesUrl && tvUrl) ? data[1] : data[0]; 
                          if (tvData) {
-                            popularTv = tvData.results.slice(0, 10).map(item => ({...item, media_type: 'tv'})); 
+                            // AJUSTE 1: Mudar de 10 para 20
+                            popularTv = tvData.results.slice(0, 20).map(item => ({...item, media_type: 'tv'})); 
                             // AJUSTE 2: Busca detalhes das séries
                             popularTv = await fetchTvDetailsForList(popularTv);
                          }
                          suggestions = popularTv;
                     } else if (mediaFilter === 'all') { 
-                         popularMovies = data[0].results.slice(0, numItems).map(item => ({...item, media_type: 'movie'})); 
-                         popularTv = data[1].results.slice(0, numItems).map(item => ({...item, media_type: 'tv'})); 
+                         popularMovies = data[0].results.slice(0, numItems).map(item => ({...item, media_type: 'movie'})); // 10
+                         popularTv = data[1].results.slice(0, numItems).map(item => ({...item, media_type: 'tv'})); // 10
                          // AJUSTE 2: Busca detalhes das séries
                          popularTv = await fetchTvDetailsForList(popularTv);
-                         suggestions = [...popularMovies, ...popularTv].sort(() => 0.5 - Math.random());
+                         suggestions = [...popularMovies, ...popularTv].sort(() => 0.5 - Math.random()); // 20 total
                     }
                 }
                 
@@ -1319,7 +1350,7 @@
                                 // 1. Chama a função de salvar (sem evento)
                                 await saveToWatchlist(item, null);
 
-                                // 2. Atualiza este botão manualmente
+                                // 2. Atualiza este botão manually
                                 button.innerHTML = '<i class="fas fa-trash-alt"></i> <span>Remover da Lista</span>';
                                 button.classList.remove('bg-success', 'hover:bg-green-600');
                                 button.classList.add('bg-danger', 'hover:bg-red-600');
@@ -1563,23 +1594,41 @@
                     
                     // 5. Atualiza a UI (APENAS se houver um botão)
                     if (button) {
-                        button.innerHTML = '<i class="fas fa-trash-alt"></i> Remover'; // Muda para remover
+                        // ***** INÍCIO DA MUDANÇA REQUISITADA (Ícone) *****
+                        const isCarouselButton = button.closest('.suggestion-card');
+                        button.innerHTML = isCarouselButton 
+                            ? '<i class="fas fa-trash-alt"></i>' // Apenas ícone
+                            : '<i class="fas fa-trash-alt"></i> Remover'; // Ícone + Texto
+                        // ***** FIM DA MUDANÇA REQUISITADA (Ícone) *****
+                        
                         button.className = originalClass.replace(/bg-success|hover:bg-green-600|bg-gray-500|cursor-not-allowed/g, '').trim();
                         button.classList.add('action-button', 'bg-danger', 'hover:bg-red-600', 'text-white', 'py-1', 'px-3', 'rounded-md', 'text-sm', 'font-medium', 'flex', 'items-center', 'justify-center', 'space-x-1');
                         button.setAttribute('data-is-added', 'true');
                         button.disabled = false;
                         
-                        // Recarrega as sugestões/busca
-                        if (currentPage === 'suggestions' && searchInput.value.trim() !== '' && resultsContainer.querySelector('.space-y-3')) {
-                            performSearch();
-                        } else {
-                            reloadAllSuggestions();
-                        }
+                        // ===============================================
+                        // ***** INÍCIO DA CORREÇÃO - Não recarregar carrossel *****
+                        // ===============================================
+                        // Recarrega as sugestões/busca REMOVIDO
+                        // if (currentPage === 'suggestions' && searchInput.value.trim() !== '' && resultsContainer.querySelector('.space-y-3')) {
+                        //     performSearch();
+                        // } else {
+                        //     reloadAllSuggestions();
+                        // }
+                        // ===============================================
+                        // ***** FIM DA CORREÇÃO - Não recarregar carrossel *****
+                        // ===============================================
                     }
                     
                 } else if (response.status === 200 && result.message === "Item já está na lista.") {
                     if (button) {
-                        button.innerHTML = '<i class="fas fa-trash-alt"></i> Remover';
+                        // ***** INÍCIO DA MUDANÇA REQUISITADA (Ícone) *****
+                        const isCarouselButton = button.closest('.suggestion-card');
+                        button.innerHTML = isCarouselButton 
+                            ? '<i class="fas fa-trash-alt"></i>' // Apenas ícone
+                            : '<i class="fas fa-trash-alt"></i> Remover'; // Ícone + Texto
+                        // ***** FIM DA MUDANÇA REQUISITADA (Ícone) *****
+                        
                         button.className = originalClass.replace(/bg-success|hover:bg-green-600|bg-gray-500|cursor-not-allowed/g, '').trim();
                         button.classList.add('action-button', 'bg-danger', 'hover:bg-red-600', 'text-white', 'py-1', 'px-3', 'rounded-md', 'text-sm', 'font-medium', 'flex', 'items-center', 'justify-center', 'space-x-1');
                         button.setAttribute('data-is-added', 'true');
@@ -1654,18 +1703,31 @@
                             filterWatchlist(currentFilter); // RecarreGA a visualização da lista
                         } else if (currentPage === 'suggestions') {
                             // AJUSTE: Mudar o botão na página de sugestões/busca de volta para Adicionar
-                            button.innerHTML = '<i class="fas fa-plus"></i> Adicionar'; 
+                            
+                            // ***** INÍCIO DA MUDANÇA REQUISITADA (Ícone) *****
+                            const isCarouselButton = button.closest('.suggestion-card');
+                            button.innerHTML = isCarouselButton 
+                                ? '<i class="fas fa-plus"></i>' // Apenas ícone
+                                : '<i class="fas fa-plus"></i> Adicionar'; // Ícone + Texto
+                            // ***** FIM DA MUDANÇA REQUISITADA (Ícone) *****
+                            
                             button.className = originalClass.replace(/bg-danger|hover:bg-red-600|bg-gray-500|cursor-not-allowed/g, '').trim();
                             button.classList.add('action-button', 'bg-success', 'hover:bg-green-600', 'text-white', 'py-1', 'px-3', 'rounded-md', 'text-sm', 'font-medium', 'flex', 'items-center', 'justify-center', 'space-x-1');
                             button.setAttribute('data-is-added', 'false');
                             button.disabled = false;
                             
-                            // MUDANÇA: Recarrega usando a função global
-                            if (searchInput.value.trim() !== '' && resultsContainer.querySelector('.space-y-3')) {
-                                performSearch();
-                            } else {
-                                reloadAllSuggestions();
-                            }
+                            // ===============================================
+                            // ***** INÍCIO DA CORREÇÃO - Não recarregar carrossel *****
+                            // ===============================================
+                            // MUDANÇA: Recarrega usando a função global REMOVIDO
+                            // if (searchInput.value.trim() !== '' && resultsContainer.querySelector('.space-y-3')) {
+                            //     performSearch();
+                            // } else {
+                            //     reloadAllSuggestions();
+                            // }
+                            // ===============================================
+                            // ***** FIM DA CORREÇÃO - Não recarregar carrossel *****
+                            // ===============================================
                         }
                     }
 
@@ -1741,7 +1803,7 @@
         }
 
         // ===============================================
-        // ***** INÍCIO DA CORREÇÃO PARA LG TV *****
+        // ***** INÍCIO DA CORREÇÃO - Novo Handle de Mover *****
         // ===============================================
         function initSortable() {
             if (sortableInstance) {
@@ -1753,16 +1815,15 @@
                 sortableInstance = Sortable.create(watchlistResults, {
                     animation: 150,
                     ghostClass: 'sortable-ghost',
-                    handle: '.watchlist-item', // O item inteiro ainda é o "movable"
                     
-                    // AJUSTE: 'filter' especifica elementos que NÃO devem iniciar um arrasto.
-                    // Isso força o Sortable.js a ignorar 'clicks' (mousedown/touchstart) 
-                    // nesses elementos, permitindo que os eventos 'onclick' nativos 
-                    // dos botões e dos links de navegação (com a classe .clickable-area) funcionem.
-                    filter: 'button, .clickable-area', 
+                    // REMOVIDO: O Handle (alça) não é mais o botão
+                    // handle: '.drag-handle-button', 
+                    
+                    // ADICIONADO: Filtro para impedir que botões iniciem o arrasto
+                    filter: '.trailer-button, .remove-button', 
 
                     delay: 200, 
-                    delayOnTouchOnly: true,
+                    // REMOVIDO: delayOnTouchOnly: true, // Agora o delay se aplica ao mouse também
                     forceFallback: true, 
                     onEnd: function (evt) {
                         const newOrder = Array.from(watchlistResults.children)
@@ -1777,7 +1838,7 @@
             }
         }
         // ===============================================
-        // ***** FIM DA CORREÇÃO PARA LG TV *****
+        // ***** FIM DA CORREÇÃO - Novo Handle de Mover *****
         // ===============================================
 
         // FUNÇÃO loadWatchlist AJUSTADA PARA PEGAR A VOTE_AVERAGE ATUALIZADA E A DATA COMPLETA DA API DO TMDB
@@ -1848,6 +1909,9 @@
         }
 
 
+        // ===================================================
+        // ***** INÍCIO DA CORREÇÃO - Event Listeners *****
+        // ===================================================
         // FUNÇÃO AJUSTADA PARA MOSTRAR A NOTA NA CAPA E A DATA COMPLETA
         function filterWatchlist(filterType) {
             currentFilter = filterType;
@@ -1904,18 +1968,16 @@
                 // FIM DO AJUSTE 5
 
                 const card = document.createElement('div');
-                card.className = 'watchlist-item bg-gray-700 border border-gray-600 rounded-xl shadow-md overflow-hidden flex items-start p-3 transition duration-200 hover:bg-gray-600 space-x-4';
+                // Card agora é clicável (cursor-pointer)
+                // AJUSTE 2: Adicionado 'space-x-3' para espaçamento correto após remoção do handle
+                card.className = 'watchlist-item bg-gray-700 border border-gray-600 rounded-xl shadow-md overflow-hidden flex items-start p-3 transition duration-200 hover:bg-gray-600 space-x-3 cursor-pointer';
                 card.setAttribute('data-tmdb-id', item.tmdb_id);
 
-                // ATUALIZADO: Adicionado a função de navegação no bloco da imagem e no bloco de texto
-                const navigationHtml = `onclick="navigate('media-details', { tmdb_id: ${item.tmdb_id}, media_type: '${item.media_type}', origin: 'watchlist' })"`;
-
-                // ===============================================
-                // ***** INÍCIO DA CORREÇÃO PARA LG TV *****
-                // ===============================================
-                // Adicionada a classe 'clickable-area' aos divs de navegação
+                // ATUALIZADO: Removido o onclick daqui
+                
+                // AJUSTE 2: HTML sem o botão de mover (drag-handle-button)
                 card.innerHTML = `
-                    <div class="flex-shrink-0 w-20 h-[120px] flex items-center justify-center cursor-pointer relative clickable-area ${navigationHtml} ${!item.poster_path ? 'placeholder-image bg-gray-600' : ''}">
+                    <div class="flex-shrink-0 w-20 h-[120px] flex items-center justify-center relative ${!item.poster_path ? 'placeholder-image bg-gray-600' : ''}">
                         <img src="${poster}" alt="Capa de ${item.title}" class="poster-fit w-full h-full object-cover rounded-md">
                         
                         ${item.vote_average ? `<span class="absolute top-1 left-1 bg-black bg-opacity-70 text-yellow-400 text-xs font-bold px-1 py-0.5 rounded-full flex items-center">
@@ -1924,7 +1986,7 @@
                     </div>
                     
                     <div class="flex-grow flex flex-col sm:flex-row sm:items-start justify-between min-w-0">
-                        <div class="min-w-0 mr-4 cursor-pointer clickable-area pt-1" ${navigationHtml}>
+                        <div class="min-w-0 mr-4 pt-1">
                             <h3 class="font-bold text-lg text-gray-100 watchlist-title">${item.title}</h3>
                             <p class="text-sm text-gray-400 mt-1">
                                 ${typeLabel} • ${displayDate}${episodeCountStr}
@@ -1932,19 +1994,41 @@
                         </div>
 
                         <div class="flex space-x-2 mt-3 sm:mt-0 flex-shrink-0">
-                            <button onclick="watchTrailer(${item.tmdb_id}, '${item.media_type}')"
-                                class="bg-accent text-gray-900 py-2 px-3 rounded-lg hover:bg-yellow-400 transition duration-150 text-sm font-medium flex items-center justify-center space-x-1">
+                            <button class="trailer-button bg-accent text-gray-900 py-2 px-3 rounded-lg hover:bg-yellow-400 transition duration-150 text-sm font-medium flex items-center justify-center space-x-1">
                                 <i class="fas fa-play"></i>
                             </button>
-                            <button onclick="removeFromWatchlist(${item.tmdb_id}, '${item.title.replace(/'/g, "\\'")}', event)"
-                                    class="bg-danger text-white py-2 px-3 rounded-lg hover:bg-red-600 transition duration-150 text-sm font-medium flex items-center justify-center space-x-1">
+                            <button class="remove-button bg-danger text-white py-2 px-3 rounded-lg hover:bg-red-600 transition duration-150 text-sm font-medium flex items-center justify-center space-x-1">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
                     </div>
                 `;
+                
                 // ===============================================
-                // ***** FIM DA CORREÇÃO PARA LG TV *****
+                // ***** INÍCIO DA CORREÇÃO - Event Listeners *****
+                // ===============================================
+
+                // 1. Adiciona o listener de NAVEGAÇÃO ao card principal
+                card.addEventListener('click', () => {
+                    navigate('media-details', { tmdb_id: item.tmdb_id, media_type: item.media_type, origin: 'watchlist' });
+                });
+
+                // 2. AJUSTE 2: Listener do BOTÃO DE MOVER removido
+
+                // 3. Adiciona o listener do BOTÃO TRAILER com stopPropagation
+                card.querySelector('.trailer-button').addEventListener('click', (e) => {
+                    e.stopPropagation(); // Impede a navegação
+                    watchTrailer(item.tmdb_id, item.media_type);
+                });
+                
+                // 4. Adiciona o listener do BOTÃO REMOVER com stopPropagation
+                card.querySelector('.remove-button').addEventListener('click', (e) => {
+                    e.stopPropagation(); // Impede a navegação
+                    removeFromWatchlist(item.tmdb_id, `${item.title.replace(/'/g, "\\'")}`, e);
+                });
+
+                // ===============================================
+                // ***** FIM DA CORREÇÃO - Event Listeners *****
                 // ===============================================
                 
                 watchlistResults.appendChild(card);
@@ -1952,6 +2036,9 @@
             
             initSortable();
         }
+        // ===================================================
+        // ***** FIM DA SEÇÃO CORRIGIDA *****
+        // ===================================================
 
         // ATUALIZADO: Gerencia o estado inicial e o listener popstate
         document.addEventListener('DOMContentLoaded', () => {
