@@ -1,113 +1,166 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Trailer — Popup</title>
-  <style>
-    :root{--primary:#3b82f6}
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trailer — Tela Cheia</title>
+  <style>
+    /* Cores e Reset Básico */
+    :root{--primary:#3b82f6}
+    *{box-sizing:border-box;margin:0;padding:0}
 
-    .btn{appearance:none;border:0;padding:1rem 1.5rem;font-weight:600;border-radius:8px;background:var(--primary);color:white;cursor:pointer;font-size:1.1rem}
+    /* 1. Modo Escuro e Centralização do Botão Principal */
+    body{
+      font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+      background:#000; /* Fundo totalmente preto */
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:100vh; /* Ocupa 100% da altura da viewport */
+    }
 
-    /* Overlay ocupa 100% da tela */
-    .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.95);z-index:1000}
-    .overlay.show{display:flex}
+    .btn{
+      appearance:none;
+      border:0;
+      padding:1.2rem 2.5rem; /* Botão mais proeminente */
+      font-weight:700;
+      border-radius:10px;
+      background:var(--primary);
+      color:white;
+      cursor:pointer;
+      font-size:1.2rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      transition: background 0.3s;
+    }
 
-    /*       Ocupa 100% do overlay para expandir o vídeo
-      */
-    .modal{
-      width:100%;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-    }
+    .btn:hover {
+        background: #2563eb;
+    }
 
-    .video-wrap{
-      position:relative;
-      width:100%;
-      height:100%;
-      background:#000;
-      /*       Ajuste crucial: Esconde o wrap até o clique.
-      */
-      display: none; 
-    }
-    /*       Mostra o vídeo quando o overlay está visível
-      */
-    .overlay.show .video-wrap{
-      display: block;
-    }
-    .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+    /* 3. Overlay (Vídeo) Ocupa 100% da Tela */
+    .overlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,1); /* Fundo totalmente opaco para tela cheia */
+      z-index:1000;
+    }
+    .overlay.show{
+      display:flex;
+    }
 
-    /*       Ajuste crucial: Garante que o botão fique na frente de tudo, 
-      agora ele flutua sobre o vídeo em tela cheia.
-      */
-    .close-btn{
-      position:absolute;
-      top:10px;
-      right:15px;
-      background:rgba(0,0,0,0.6);
-      border:0;
-      color:#fff;
-      font-size:24px;
-      padding:8px 12px;
-      border-radius:6px;
-      cursor:pointer;
-      z-index:10000; /* Z-index BEM alto! */
-    }
+    /* Ajuste para que o modal ocupe 100% do overlay */
+    .modal{
+      width:100%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+    }
 
-    @media (max-width:480px){.btn{width:90%;}}
-  </style>
+    /* O wrapper do vídeo agora também ocupa 100% para o iframe se expandir */
+    .video-wrap{
+      position:relative;
+      width:100%;
+      height:100%;
+      background:#000;
+      display: none; /* Esconde até o clique */
+    }
+    
+    .overlay.show .video-wrap{
+      display: block; /* Mostra quando o overlay está ativo */
+    }
+    
+    /* O Iframe (o vídeo) preenche totalmente o wrap (que é 100% da tela) */
+    .video-wrap iframe{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      border:0;
+    }
+
+    /* 4. Botão de Fechar Flutuante */
+    .close-btn{
+      position:absolute;
+      top:20px;
+      right:30px;
+      background:rgba(255, 255, 255, 0.2); /* Fundo semi-transparente */
+      border:2px solid rgba(255, 255, 255, 0.5);
+      color:#fff;
+      font-size:20px;
+      line-height:1;
+      padding:10px 16px;
+      border-radius:50%; /* Botão redondo */
+      cursor:pointer;
+      z-index:10000;
+      transition: background 0.3s, transform 0.2s;
+    }
+    .close-btn:hover {
+        background: rgba(255, 255, 255, 0.4);
+        transform: scale(1.05);
+    }
+
+    @media (max-width:480px){.btn{width:80%;padding:1rem 1.5rem;font-size:1.1rem;}}
+  </style>
 </head>
 <body>
-  <button id="openBtn" class="btn">▶ Ver Trailer</button>
+  <button id="openBtn" class="btn">▶ Ver Trailer</button>
 
-  <div id="trailerModal" class="overlay">
-    <button id="closeBtn" class="close-btn">✕</button>
-    <div class="modal">
-      <div class="video-wrap">
-        <iframe id="videoFrame" src="" title="Trailer" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
-      </div>
-    </div>
-  </div>
+  <div id="trailerModal" class="overlay">
+    <button id="closeBtn" class="close-btn">✕</button> 
+    
+    <div class="modal">
+      <div class="video-wrap">
+        <iframe id="videoFrame" src="" title="Trailer" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
 
-  <script>
-    (function(){
-      const openBtn = document.getElementById('openBtn');
-      const overlay = document.getElementById('trailerModal');
-      const closeBtn = document.getElementById('closeBtn');
-      const videoWrap = document.querySelector('.video-wrap'); // Seleciona o elemento do vídeo
-      const iframe = document.getElementById('videoFrame');
-      const videoId = 'mn0QvmEicIY';
-      const embedBase = 'https://www.youtube.com/embed/';
+  <script>
+    (function(){
+      const openBtn = document.getElementById('openBtn');
+      const overlay = document.getElementById('trailerModal');
+      const closeBtn = document.getElementById('closeBtn');
+      const iframe = document.getElementById('videoFrame');
+      // ID do vídeo que será carregado. Exemplo: Trailer do filme "Dune"
+      const videoId = 'mn0QvmEicIY'; 
+      const embedBase = 'https://www.youtube.com/embed/';
 
-      function openModal(){
-        const src = embedBase + videoId + '?autoplay=1&rel=0&enablejsapi=1';
-        iframe.src = src;
-        // Remove a necessidade do JavaScript de mostrar o vídeo, o CSS faz isso agora!
-        overlay.classList.add('show');
-      }
+      function openModal(){
+        // Prepara o URL com autoplay e outros parâmetros para iniciar o vídeo
+        const src = embedBase + videoId + '?autoplay=1&rel=0&enablejsapi=1'; 
+        iframe.src = src;
+        // Mostra o overlay, o CSS cuida da expansão do vídeo
+        overlay.classList.add('show');
+      }
 
-      function closeModal(){
-        // Pausa o vídeo limpando o src e esconde o overlay
-        overlay.classList.remove('show');
-        iframe.src = '';
-      }
+      function closeModal(){
+        // Limpa o src para pausar o vídeo e evitar consumo de recursos
+        iframe.src = '';
+        // Esconde o overlay
+        overlay.classList.remove('show');
+      }
 
-      openBtn.addEventListener('click', openModal);
-      closeBtn.addEventListener('click', closeModal);
-      // Fechar ao clicar no overlay (área escura fora do vídeo)
-      overlay.addEventListener('click', e => { 
-        if(e.target === overlay) closeModal(); 
-      });
-      // Fechar com a tecla 'Escape'
-      document.addEventListener('keydown', e => { 
-        if(e.key === 'Escape' && overlay.classList.contains('show')) closeModal(); 
-      });
-    })();
-  </script>
+      // 🎧 Event Listeners
+      openBtn.addEventListener('click', openModal);
+      closeBtn.addEventListener('click', closeModal);
+      
+      // Fechar ao clicar no overlay, mas garante que não feche ao clicar no vídeo
+      overlay.addEventListener('click', e => { 
+        // Verifica se o clique foi exatamente no elemento 'overlay' (a área preta fora do modal, embora neste caso seja toda a tela)
+        if(e.target === overlay) closeModal(); 
+      });
+      
+      // Fechar com a tecla 'Escape'
+      document.addEventListener('keydown', e => { 
+        if(e.key === 'Escape' && overlay.classList.contains('show')) closeModal(); 
+      });
+    })();
+  </script>
 </body>
 </html>
