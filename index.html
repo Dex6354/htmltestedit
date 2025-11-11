@@ -20,6 +20,7 @@
       height:100vh; /* Ocupa 100% da altura da viewport */
     }
 
+    /* Botão Principal - Adiciona a classe 'hidden' para esconder */
     .btn{
       appearance:none;
       border:0;
@@ -31,11 +32,18 @@
       cursor:pointer;
       font-size:1.2rem;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-      transition: background 0.3s;
+      transition: background 0.3s, opacity 0.3s, visibility 0.3s; /* Adicionado transição */
     }
 
     .btn:hover {
         background: #2563eb;
+    }
+    
+    /* NOVA CLASSE: Para esconder o botão principal ao abrir o trailer */
+    .btn.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none; /* Garante que não seja clicável */
     }
 
     /* 3. Overlay (Vídeo) Ocupa 100% da Tela */
@@ -127,22 +135,23 @@
       const overlay = document.getElementById('trailerModal');
       const closeBtn = document.getElementById('closeBtn');
       const iframe = document.getElementById('videoFrame');
-      // ID do vídeo que será carregado. Exemplo: Trailer do filme "Dune"
       const videoId = 'mn0QvmEicIY'; 
       const embedBase = 'https://www.youtube.com/embed/';
 
       function openModal(){
-        // Prepara o URL com autoplay e outros parâmetros para iniciar o vídeo
+        // PASSO CRUCIAL: Esconde o botão principal
+        openBtn.classList.add('hidden'); 
+        
         const src = embedBase + videoId + '?autoplay=1&rel=0&enablejsapi=1'; 
         iframe.src = src;
-        // Mostra o overlay, o CSS cuida da expansão do vídeo
         overlay.classList.add('show');
       }
 
       function closeModal(){
-        // Limpa o src para pausar o vídeo e evitar consumo de recursos
+        // PASSO CRUCIAL: Mostra o botão principal novamente
+        openBtn.classList.remove('hidden'); 
+        
         iframe.src = '';
-        // Esconde o overlay
         overlay.classList.remove('show');
       }
 
@@ -150,9 +159,8 @@
       openBtn.addEventListener('click', openModal);
       closeBtn.addEventListener('click', closeModal);
       
-      // Fechar ao clicar no overlay, mas garante que não feche ao clicar no vídeo
+      // Fechar ao clicar no overlay (área escura)
       overlay.addEventListener('click', e => { 
-        // Verifica se o clique foi exatamente no elemento 'overlay' (a área preta fora do modal, embora neste caso seja toda a tela)
         if(e.target === overlay) closeModal(); 
       });
       
