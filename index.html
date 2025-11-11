@@ -139,7 +139,7 @@
         padding: 0.2rem 0.5rem;
     }
 
-    /* INÍCIO DAS CORREÇÕES DO MODAL FULL-SCREEN */
+    /* INÍCIO DAS CORREÇÕES DO MODAL FULL-SCREEN (SUBSTITUÍDO) */
     
     /* CORREÇÃO DE BUG CRÍTICO: Garante que o modal esteja *realmente* oculto por padrão. 
        O 'display: flex' no ID estava sobrescrevendo o 'display: none' da classe 'hidden' do Tailwind. */
@@ -179,7 +179,7 @@
         z-index: 99999; 
         position: fixed;
     }
-    /* FIM DAS CORREÇÕES DO MODAL FULL-SCREEN */
+    /* FIM DAS CORREÇÕES DO MODAL FULL-SCREEN (SUBSTITUÍDO) */
 
     </style>
 </head>
@@ -374,7 +374,6 @@
         <div id="trailer-content" class="w-full h-full">
         </div>
     </div>
-
     <script>
         // API Keys e URLs
         const TMDB_API_KEY = '014bf3c87afa31a3f1c8f4ad30e1b834'; 
@@ -523,7 +522,7 @@
 
 
         // ===================================================
-        // FUNÇÕES DE TRAILER (MODAL) - AJUSTADAS PARA FULL-SCREEN
+        // FUNÇÕES DE TRAILER (MODAL) - AJUSTADAS PARA FULL-SCREEN (SUBSTITUÍDO)
         // ===================================================
 
         // FUNÇÃO REFORÇADA PARA GARANTIR FULL-SCREEN E OCULTAÇÃO TOTAL
@@ -607,6 +606,10 @@
                 alert('Erro ao buscar trailer. Tente novamente mais tarde.');
             }
         }
+        
+        // ===================================================
+        // FIM DA SEÇÃO SUBSTITUÍDA
+        // ===================================================
 
 
         // ===================================================
@@ -822,10 +825,9 @@
                         watchTrailer(id, type);
                     });
                 }
-
+                
                 parentContainer.appendChild(card);
             });
-
             container.appendChild(parentContainer);
         }
 
@@ -837,52 +839,60 @@
             const query = searchInput.value.trim();
             
             // Torna o título e o container visíveis
-            searchResultsTitle.classList.remove('hidden');
-            resultsContainer.classList.remove('hidden');
-
+            searchResultsTitle.classList.remove('hidden'); 
+            resultsContainer.classList.remove('hidden'); 
+            
             if (query === '') {
                 resultsContainer.innerHTML = '<p class="col-span-full text-center text-danger">Por favor, digite um termo de busca.</p>';
                 return;
             }
 
             resultsContainer.innerHTML = '<p class="col-span-full text-center text-primary animate-pulse">Buscando no TMDb...</p>';
-            
+
             try {
                 // Adicionado 'en-US' como fallback, caso não haja tradução para pt-BR
                 const url = `${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=pt-BR&include_adult=false`;
                 const response = await fetch(url);
                 const data = await response.json();
                 
-                // Filtra apenas por 'movie' e 'tv'
-                const results = data.results.filter(item => item.media_type === 'movie' || item.media_type === 'tv');
+                // AJUSTE 2: Busca detalhes das séries (se houver)
+                const tvResults = data.results.filter(item => item.media_type === 'tv');
+                const movieResults = data.results.filter(item => item.media_type === 'movie');
                 
-                if (results.length > 0) {
-                    displaySearchResults(results, resultsContainer, 'list', true, watchlistIds);
-                } else {
-                    resultsContainer.innerHTML = '<p class="col-span-full text-center text-gray-500">Nenhum filme ou série encontrado para sua busca.</p>';
-                }
-
+                // Busca detalhes APENAS para as séries
+                const detailedTvResults = await fetchTvDetailsForList(tvResults);
+                
+                // Remonta a lista (filmes + séries com detalhes)
+                const allResults = [...movieResults, ...detailedTvResults];
+                
+                // Passa os IDs da lista para checagem do botão
+                displaySearchResults(allResults, resultsContainer, 'list', true, watchlistIds); 
+                
             } catch (error) {
-                console.error('Erro ao buscar TMDb:', error);
-                resultsContainer.innerHTML = '<p class="col-span-full text-center text-danger">Erro ao realizar a busca. Tente novamente mais tarde.</p>';
+                console.error('Erro ao buscar dados do TMDb:', error);
+                resultsContainer.innerHTML = '<p class="col-span-full text-center text-danger">Erro de comunicação com o TMDb. Tente novamente.</p>';
             }
         }
         
-        // MUDANÇA: Função para setar o filtro e recarregar
+        // MUDANÇA: Nova função para definir o filtro global e recarregar tudo
         function setGlobalSuggestionFilter(mediaFilter) {
-            // 1. Atualiza o estado global e a interface dos botões
+            // Se o filtro já estiver ativo, não faz nada
+            if (globalSuggestionFilter === mediaFilter) return;
+
             globalSuggestionFilter = mediaFilter;
-            const filterButtons = document.querySelectorAll('#suggestions-page .suggestions-filter-button');
             
-            filterButtons.forEach(btn => {
+            // 1. Atualiza a classe de TODOS os botões de filtro de sugestões
+            const allSuggestionButtons = document.querySelectorAll('#suggestions-page .suggestions-filter-button');
+            
+            allSuggestionButtons.forEach(btn => {
                 btn.classList.remove('suggestions-filter-active');
-                // Adiciona classes inativas se o 'active' não as sobrescrever
-                btn.classList.add('bg-gray-700', 'hover:bg-gray-600', 'text-gray-300');
+                // Garante que o estilo inativo seja aplicado (caso o 'active' o sobrescreva)
+                btn.classList.add('bg-gray-700', 'hover:bg-gray-600', 'text-gray-300'); 
 
                 if (btn.getAttribute('data-filter') === mediaFilter) {
                     btn.classList.add('suggestions-filter-active');
                     // Remove classes inativas se o 'active' não as sobrescrever
-                    btn.classList.remove('bg-gray-700', 'hover:bg-gray-600', 'text-gray-300');
+                    btn.classList.remove('bg-gray-700', 'hover:bg-gray-600', 'text-gray-300'); 
                 }
             });
 
@@ -895,10 +905,11 @@
             loadSuggestions('trending', trendingContainer, 'tendências', globalSuggestionFilter);
             loadSuggestions('netflix_top', netflixContainer, 'Top 10 Netflix', globalSuggestionFilter);
             loadSuggestions('top_rated', topRatedContainer, 'Top Rated', globalSuggestionFilter);
-            loadSuggestions('recent_releases', recentReleasesContainer, 'lançamentos recentes', globalSuggestionFilter);
+            loadSuggestions('recent_releases', recentReleasesContainer, 'lançamentos recentes', globalSuggestionFilter); 
             loadSuggestions('in_theaters', inTheatersContainer, 'filmes no cinema', globalSuggestionFilter); // NOVO
             loadSuggestions('popular', popularContainer, 'populares', globalSuggestionFilter);
         }
+
 
         // ALTERADA: Função loadSuggestions para receber o mediaFilter
         async function loadSuggestions(endpoint, container, name, mediaFilter = 'all') {
@@ -924,60 +935,66 @@
                         trendingTv = data.results.filter(item => item.media_type === 'tv').slice(0, numItems);
                         // AJUSTE 2: Busca detalhes das séries
                         trendingTv = await fetchTvDetailsForList(trendingTv);
-                        suggestions = [...trendingMovies, ...trendingTv].sort(() => 0.5 - Math.random());
+                        suggestions = [...trendingMovies, ...trendingTv];
                     } else if (mediaFilter === 'movie') {
-                        suggestions = data.results.filter(item => item.media_type === 'movie').slice(0, 10);
-                    } else if (mediaFilter === 'tv') {
-                        suggestions = data.results.filter(item => item.media_type === 'tv').slice(0, 10);
+                        trendingMovies = data.results.filter(item => item.media_type === 'movie').slice(0, 10);
+                        suggestions = trendingMovies;
+                    } else { // 'tv'
+                        trendingTv = data.results.filter(item => item.media_type === 'tv').slice(0, 10);
                         // AJUSTE 2: Busca detalhes das séries
-                        suggestions = await fetchTvDetailsForList(suggestions);
+                        trendingTv = await fetchTvDetailsForList(trendingTv);
+                        suggestions = trendingTv;
                     }
+                
+                } else if (endpoint === 'recent_releases') { // ENDPOINT DE LANÇAMENTOS RECENTES
+                    
+                    if (mediaFilter === 'movie' || mediaFilter === 'all') {
+                        const sixMonthsAgo = new Date();
+                        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                        const dateStart = sixMonthsAgo.toISOString().split('T')[0];
+                        const dateEnd = new Date().toISOString().split('T')[0];
+                        moviesUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=pt-BR&region=BR&sort_by=popularity.desc&primary_release_date.gte=${dateStart}&primary_release_date.lte=${dateEnd}&include_adult=false`;
+                    }
+                    
+                    if (mediaFilter === 'tv' || mediaFilter === 'all') {
+                        const threeMonthsAgo = new Date();
+                        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                        const dateStartTV = threeMonthsAgo.toISOString().split('T')[0];
+                        const dateEndTV = new Date().toISOString().split('T')[0];
+                        tvUrl = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=popularity.desc&first_air_date.gte=${dateStartTV}&first_air_date.lte=${dateEndTV}&include_adult=false`;
+                    }
+                    
+                    const fetchPromises = [];
+                    if (moviesUrl) fetchPromises.push(fetch(moviesUrl));
+                    if (tvUrl) fetchPromises.push(fetch(tvUrl));
 
-                } else if (endpoint === 'recent_releases') {
-                    // Endpoint 'recent_releases' usa 'primary_release_date.lte'
-                    moviesUrl = (mediaFilter === 'movie' || mediaFilter === 'all') 
-                        ? `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=primary_release_date.desc&primary_release_date.lte=${new Date().toISOString().split('T')[0]}&vote_count.gte=10&region=BR&include_adult=false` 
-                        : null;
-                        
-                    tvUrl = (mediaFilter === 'tv' || mediaFilter === 'all') 
-                        ? `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=first_air_date.desc&first_air_date.lte=${new Date().toISOString().split('T')[0]}&vote_count.gte=10&include_adult=false` 
-                        : null;
+                    const responses = await Promise.all(fetchPromises);
+                    const data = await Promise.all(responses.map(res => res.json()));
 
-                    const urls = [];
-                    if (moviesUrl) urls.push(fetch(moviesUrl));
-                    if (tvUrl) urls.push(fetch(tvUrl));
-
-                    if (urls.length === 0) {
-                        suggestions = [];
-                    } else {
-                        const responses = await Promise.all(urls);
-                        const data = await Promise.all(responses.map(res => res.json()));
-                        
-                        let recentMovies = [];
-                        let recentTv = [];
-                        
-                        if (mediaFilter === 'movie' && moviesUrl) {
-                            recentMovies = data[0].results.slice(0, 10).map(item => ({...item, media_type: 'movie'}));
-                            suggestions = recentMovies;
-                        } else if (mediaFilter === 'tv' && tvUrl) {
-                            const tvData = (moviesUrl && tvUrl) ? data[1] : data[0];
-                            if (tvData) {
-                                recentTv = tvData.results.slice(0, 10).map(item => ({...item, media_type: 'tv'}));
-                                // AJUSTE 2: Busca detalhes das séries
-                                recentTv = await fetchTvDetailsForList(recentTv);
-                            }
-                            suggestions = recentTv;
-                        } else if (mediaFilter === 'all') {
-                            recentMovies = data[0].results.slice(0, numItems).map(item => ({...item, media_type: 'movie'}));
-                            recentTv = data[1].results.slice(0, numItems).map(item => ({...item, media_type: 'tv'}));
+                    let recentMovies = [];
+                    let recentTv = [];
+                    
+                    if (mediaFilter === 'movie' && moviesUrl) {
+                         recentMovies = data[0].results.slice(0, 10).map(item => ({...item, media_type: 'movie'}));
+                         suggestions = recentMovies;
+                    } else if (mediaFilter === 'tv' && tvUrl) {
+                         const tvData = (moviesUrl && tvUrl) ? data[1] : data[0]; 
+                         if (tvData) {
+                            recentTv = tvData.results.slice(0, 10).map(item => ({...item, media_type: 'tv'})); 
                             // AJUSTE 2: Busca detalhes das séries
                             recentTv = await fetchTvDetailsForList(recentTv);
-                            suggestions = [...recentMovies, ...recentTv].sort(() => 0.5 - Math.random());
-                        }
+                         }
+                         suggestions = recentTv;
+                    } else if (mediaFilter === 'all') { 
+                         recentMovies = data[0].results.slice(0, numItems).map(item => ({...item, media_type: 'movie'})); 
+                         recentTv = data[1].results.slice(0, numItems).map(item => ({...item, media_type: 'tv'})); 
+                         // AJUSTE 2: Busca detalhes das séries
+                         recentTv = await fetchTvDetailsForList(recentTv);
+                         suggestions = [...recentMovies, ...recentTv].sort(() => 0.5 - Math.random());
                     }
-
-                } else if (endpoint === 'in_theaters') {
-                    // NOVO ENDPOINT: Filmes no Cinema
+                    
+                } else if (endpoint === 'in_theaters') { // NOVO ENDPOINT: Filmes no Cinema
+                    
                     if (mediaFilter === 'tv') {
                         suggestions = [];
                     } else {
@@ -986,65 +1003,55 @@
                         const data = await response.json();
                         suggestions = data.results.slice(0, 10).map(item => ({...item, media_type: 'movie'}));
                     }
-
+                    
                 } else if (endpoint === 'top_rated' || endpoint === 'popular' || endpoint === 'netflix_top') {
                     
                     if (mediaFilter === 'movie' || mediaFilter === 'all') {
                         if (endpoint === 'netflix_top') {
-                             moviesUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=popularity.desc&with_watch_providers=8&watch_region=BR&include_adult=false&vote_count.gte=50&with_original_language=en`;
-                        } else if (endpoint === 'top_rated') {
-                            moviesUrl = `${TMDB_BASE_URL}/movie/top_rated?api_key=${TMDB_API_KEY}&language=pt-BR&include_adult=false&region=BR`;
-                        } else if (endpoint === 'popular') {
-                            moviesUrl = `${TMDB_BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&language=pt-BR&include_adult=false&region=BR`;
+                            moviesUrl = `${TMDB_BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=popularity.desc&with_watch_providers=8&watch_region=BR&year=${new Date().getFullYear()}&include_adult=false`;
+                        } else {
+                            moviesUrl = `${TMDB_BASE_URL}/movie/${endpoint}?api_key=${TMDB_API_KEY}&language=pt-BR`;
                         }
                     }
-
                     if (mediaFilter === 'tv' || mediaFilter === 'all') {
                         if (endpoint === 'netflix_top') {
-                            tvUrl = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=popularity.desc&with_watch_providers=8&watch_region=BR&include_adult=false&vote_count.gte=50&with_original_language=en`;
-                        } else if (endpoint === 'top_rated') {
-                            tvUrl = `${TMDB_BASE_URL}/tv/top_rated?api_key=${TMDB_API_KEY}&language=pt-BR&include_adult=false`;
-                        } else if (endpoint === 'popular') {
-                            tvUrl = `${TMDB_BASE_URL}/tv/popular?api_key=${TMDB_API_KEY}&language=pt-BR&include_adult=false`;
+                            tvUrl = `${TMDB_BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&language=pt-BR&sort_by=popularity.desc&with_watch_providers=8&watch_region=BR&year=${new Date().getFullYear()}&include_adult=false`;
+                        } else {
+                            tvUrl = `${TMDB_BASE_URL}/tv/${endpoint}?api_key=${TMDB_API_KEY}&language=pt-BR`;
                         }
                     }
-                    
-                    const urls = [];
-                    if (moviesUrl) urls.push(fetch(moviesUrl));
-                    if (tvUrl) urls.push(fetch(tvUrl));
-                    
-                    if (urls.length === 0) {
-                        suggestions = [];
-                    } else {
-                        const responses = await Promise.all(urls);
-                        const data = await Promise.all(responses.map(res => res.json()));
 
-                        let fetchedMovies = [];
-                        let fetchedTv = [];
-                        
-                        if (mediaFilter === 'movie' && moviesUrl) {
-                            fetchedMovies = data[0].results.slice(0, 10).map(item => ({...item, media_type: 'movie'}));
-                            suggestions = fetchedMovies;
-                        } else if (mediaFilter === 'tv' && tvUrl) {
-                            const tvData = (moviesUrl && tvUrl) ? data[1] : data[0];
-                            if (tvData) {
-                                fetchedTv = tvData.results.slice(0, 10).map(item => ({...item, media_type: 'tv'}));
-                                // AJUSTE 2: Busca detalhes das séries
-                                fetchedTv = await fetchTvDetailsForList(fetchedTv);
-                            }
-                            suggestions = fetchedTv;
-                        } else if (mediaFilter === 'all') {
-                            fetchedMovies = data[0].results.slice(0, numItems).map(item => ({...item, media_type: 'movie'}));
-                            fetchedTv = data[1].results.slice(0, numItems).map(item => ({...item, media_type: 'tv'}));
+                    const fetchPromises = [];
+                    if (moviesUrl) fetchPromises.push(fetch(moviesUrl));
+                    if (tvUrl) fetchPromises.push(fetch(tvUrl));
+
+                    const responses = await Promise.all(fetchPromises);
+                    const data = await Promise.all(responses.map(res => res.json()));
+
+                    let popularMovies = [];
+                    let popularTv = [];
+                    
+                    if (mediaFilter === 'movie' && moviesUrl) {
+                         popularMovies = data[0].results.slice(0, 10).map(item => ({...item, media_type: 'movie'}));
+                         suggestions = popularMovies;
+                    } else if (mediaFilter === 'tv' && tvUrl) {
+                         const tvData = (moviesUrl && tvUrl) ? data[1] : data[0]; 
+                         if (tvData) {
+                            popularTv = tvData.results.slice(0, 10).map(item => ({...item, media_type: 'tv'})); 
                             // AJUSTE 2: Busca detalhes das séries
-                            fetchedTv = await fetchTvDetailsForList(fetchedTv);
-                            suggestions = [...fetchedMovies, ...fetchedTv].sort(() => 0.5 - Math.random());
-                        }
+                            popularTv = await fetchTvDetailsForList(popularTv);
+                         }
+                         suggestions = popularTv;
+                    } else if (mediaFilter === 'all') { 
+                         popularMovies = data[0].results.slice(0, numItems).map(item => ({...item, media_type: 'movie'})); 
+                         popularTv = data[1].results.slice(0, numItems).map(item => ({...item, media_type: 'tv'})); 
+                         // AJUSTE 2: Busca detalhes das séries
+                         popularTv = await fetchTvDetailsForList(popularTv);
+                         suggestions = [...popularMovies, ...popularTv].sort(() => 0.5 - Math.random());
                     }
-
                 }
-
-                // 3. Renderiza o carrossel usando a função displaySearchResults
+                
+                // Passa os IDs da lista para checagem do botão
                 displaySearchResults(suggestions, container, 'carousel', true, watchlistIds);
 
             } catch (error) {
@@ -1053,13 +1060,14 @@
             }
         }
 
+
         // ===================================================
         // FUNÇÕES DE DETALHES DE MÍDIA E ATOR (AJUSTADAS PARA O BOTÃO VOLTAR)
         // ===================================================
 
         async function loadMediaDetails(tmdbId, mediaType, originPage) {
             mediaDetailsContent.innerHTML = '<p class="text-center text-primary animate-pulse p-10">Carregando detalhes do item...</p>';
-            
+
             try {
                 const detailsUrl = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}?api_key=${TMDB_API_KEY}&language=pt-BR`;
                 const creditsUrl = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}/credits?api_key=${TMDB_API_KEY}`;
@@ -1074,62 +1082,70 @@
                 const poster = details.poster_path ? `${IMAGE_BASE_URL}${details.poster_path}` : 'https://placehold.co/300x450/4b5563/d1d5db?text=N/A';
                 const overview = details.overview || 'Sinopse não disponível em Português.';
                 const cast = credits.cast.slice(0, 10);
+                
                 const ratingPercent = details.vote_average ? `${(details.vote_average * 10).toFixed(0)}%` : 'N/A';
                 const ratingValue = details.vote_average ? details.vote_average.toFixed(1) : 'N/A';
                 
                 // ***** INÍCIO DA MUDANÇA REQUISITADA *****
+                
                 // 1. Verifica se o item já está na lista
-                const isItemInWatchlist = watchlistIds.includes(String(tmdbId));
+                const isAdded = watchlistIds.includes(String(tmdbId));
                 
-                // 2. Cria o HTML do botão de AÇÃO
-                const actionButtonId = `action-button-${tmdbId}`;
-                const action = isItemInWatchlist ? 'remove' : 'add';
-                const buttonClass = isItemInWatchlist ? 'bg-danger hover:bg-red-600' : 'bg-success hover:bg-green-600';
-                const buttonHtml = isItemInWatchlist ? '<i class="fas fa-trash-alt"></i> <span>Remover da Lista</span>' : '<i class="fas fa-plus"></i> <span>Adicionar à Lista</span>';
+                // 2. Define o HTML do botão de ação
+                const actionButtonHtml = isAdded
+                    ? `<button id="details-action-button"
+                                class="action-button bg-danger hover:bg-red-600 text-white py-3 px-6 rounded-lg transition duration-150 text-lg font-semibold flex items-center justify-center space-x-2 w-full sm:w-auto shadow-lg"
+                                data-action="remove">
+                            <i class="fas fa-trash-alt"></i>
+                            <span>Remover da Lista</span>
+                        </button>`
+                    : `<button id="details-action-button"
+                                class="action-button bg-success hover:bg-green-600 text-white py-3 px-6 rounded-lg transition duration-150 text-lg font-semibold flex items-center justify-center space-x-2 w-full sm:w-auto shadow-lg"
+                                data-action="add"
+                                data-poster="${details.poster_path || ''}"
+                                data-vote="${details.vote_average || ''}">
+                            <i class="fas fa-plus"></i>
+                            <span>Adicionar à Lista</span>
+                        </button>`;
                 
-                const actionButtonHtml = `
-                    <button id="${actionButtonId}" 
-                            class="text-white py-3 px-6 rounded-lg transition duration-150 text-lg font-semibold flex items-center justify-center space-x-2 w-full sm:w-auto shadow-lg ${buttonClass}"
-                            data-tmdb-id="${tmdbId}"
-                            data-media-type="${mediaType}"
-                            data-action="${action}"
-                            data-poster="${details.poster_path}"
-                            data-vote="${details.vote_average}">
-                        ${buttonHtml}
-                    </button>
-                `;
                 // ***** FIM DA MUDANÇA REQUISITADA *****
 
-                // AJUSTE 3: Detalhes de Séries (Temporadas/Episódios)
+
+                // AJUSTE 3: Lógica para contagem de episódios e lista de episódios
                 let seasonsHtml = '';
                 let episodeCountStr = '';
 
                 if (mediaType === 'tv') {
-                    // Adiciona a contagem de temporadas/episódios ao texto de descrição
-                    const numSeasons = details.number_of_seasons;
-                    const numEpisodes = details.number_of_episodes;
-                    episodeCountStr = numSeasons ? ` • ${numSeasons} Temp.` : '';
-                    episodeCountStr = numEpisodes ? episodeCountStr + ` • ${numEpisodes} Episódios` : episodeCountStr;
-
-
+                    // Formato 2x6 para o cabeçalho
+                    if (details.number_of_seasons && details.last_episode_to_air) {
+                        episodeCountStr = ` • ${details.number_of_seasons}x${details.last_episode_to_air.episode_number}`;
+                    } else if (details.number_of_seasons) {
+                        episodeCountStr = ` • ${details.number_of_seasons} Temp.`;
+                    }
+                    
+                    // Lógica para buscar e listar episódios
                     if (details.seasons && details.seasons.length > 0) {
-                        // Filtra as temporadas especiais e que ainda não foram lançadas
-                        const validSeasons = details.seasons
-                            .filter(s => s.season_number > 0 && s.episode_count > 0);
+                        // Filtra "Especiais" (season 0) a menos que seja a única temporada
+                        const validSeasons = details.seasons.filter(s => s.season_number > 0 || details.seasons.length === 1);
                         
-                        // Busca detalhes da primeira temporada para mostrar os episódios (só se houver temporadas válidas)
-                        if (validSeasons.length > 0) {
-                            try {
-                                const latestSeasonNumber = validSeasons[validSeasons.length - 1].season_number;
-                                const seasonDetailsUrl = `${TMDB_BASE_URL}/tv/${tmdbId}/season/${latestSeasonNumber}?api_key=${TMDB_API_KEY}&language=pt-BR`;
-                                const seasonDetailsResponse = await fetch(seasonDetailsUrl);
-                                const season = await seasonDetailsResponse.json();
-                                
+                        try {
+                            const seasonDetailsPromises = validSeasons.map(season => 
+                                fetch(`${TMDB_BASE_URL}/tv/${tmdbId}/season/${season.season_number}?api_key=${TMDB_API_KEY}&language=pt-BR`)
+                                    .then(res => res.json())
+                            );
+                            
+                            const seasonsData = await Promise.all(seasonDetailsPromises);
+                            
+                            seasonsHtml = '<h3 class="text-xl font-semibold text-gray-300 mt-6 mb-3">Episódios</h3>';
+                            // Adiciona scroll vertical se a lista for muito grande
+                            seasonsHtml += '<div class="space-y-4 max-h-96 overflow-y-auto pr-2">'; 
+                            
+                            for (const season of seasonsData) {
                                 if (season.episodes && season.episodes.length > 0) {
-                                    seasonsHtml = '<h3 class="text-xl font-semibold text-gray-300 mt-6 mb-3">Episódios</h3>';
                                     seasonsHtml += `<div class="bg-gray-700 p-4 rounded-lg shadow-inner">`;
                                     seasonsHtml += `<h4 class="text-lg font-bold text-white mb-3">${season.name || 'Temporada ' + season.season_number} (${season.episodes.length} episódios)</h4>`;
-                                    seasonsHtml += '<ul class="space-y-3 max-h-60 overflow-y-auto pr-2">'; // Adiciona scroll vertical
+                                    seasonsHtml += '<ul class="space-y-3">';
+                                    
                                     for (const episode of season.episodes) {
                                         const epDate = formatFullDate(episode.air_date) || 'N/A';
                                         seasonsHtml += `
@@ -1142,60 +1158,67 @@
                                         `;
                                     }
                                     seasonsHtml += '</ul></div>';
-                                    
-                                    // Adiciona um link para todas as temporadas, se houver mais de uma temporada válida.
-                                    if (validSeasons.length > 1) {
-                                        seasonsHtml += `<p class="text-sm text-center mt-2 text-primary cursor-pointer hover:text-blue-400" onclick="alert('Funcionalidade completa de lista de temporadas não implementada. Esta seção mostra apenas a mais recente.')">Ver todas as ${validSeasons.length} temporadas...</p>`;
-                                    }
                                 }
-                            } catch (e) {
-                                console.error("Erro ao buscar detalhes da temporada mais recente:", e);
-                                seasonsHtml = '<p class="text-danger">Não foi possível carregar a lista de episódios.</p>';
                             }
+                            seasonsHtml += '</div>';
+
+                        } catch (e) {
+                            console.error("Erro ao buscar detalhes das temporadas:", e);
+                            seasonsHtml = '<p class="text-danger">Não foi possível carregar os episódios.</p>';
                         }
                     }
-                } // FIM DO AJUSTE 3
+                }
+                // FIM DO AJUSTE 3
 
                 // NOVO: Encontrar Escritores (Roteiristas)
-                let writers = credits.crew 
-                    .filter(person => person.department === 'Writing' && (person.job === 'Writer' || person.job === 'Screenplay' || person.job === 'Creator'))
-                    .slice(0, 3);
-                    
+                let writers = credits.crew
+                    .filter(person => person.department === 'Writing')
+                    // Pega jobs comuns, 'Writer' e 'Screenplay' são os mais prováveis
+                    .filter(person => person.job === 'Writer' || person.job === 'Screenplay' || person.job === 'Teleplay'); 
+
+                // Se não achar "Writer" ou "Screenplay", pega qualquer um do departamento "Writing"
+                if (writers.length === 0) {
+                     writers.push(...credits.crew.filter(person => person.department === 'Writing'));
+                }
+                
+                // Remove duplicados pelo ID
+                const uniqueWriters = Array.from(new Map(writers.map(w => [w.id, w])).values()).slice(0, 5); // Limita a 5
+
                 let writersHtml = '';
-                if (writers.length > 0) {
+                if (uniqueWriters.length > 0) {
                     writersHtml = `
-                        <h3 class="text-xl font-semibold text-gray-300 mt-6 mb-3">${writers.length > 1 ? 'Escritores/Criadores' : 'Escritor/Criador'}</h3>
-                        <div class="flex flex-wrap gap-4">
-                            ${writers.map(writer => {
-                                // Escapa aspas simples no nome do escritor para o JSON
+                        <h3 class="text-xl font-semibold text-gray-300 mt-6 mb-3">Escritor(es)</h3>
+                        <div id="writer-list" class="flex flex-wrap gap-4">
+                            ${uniqueWriters.map(writer => {
+                                // Escapa aspas no nome para o JSON
                                 const safeWriterName = writer.name.replace(/'/g, "\\'");
                                 return `
-                                    <div class="text-center cursor-pointer hover:text-primary transition duration-150" 
-                                         onclick="navigate('writer-details', { 
-                                            writer_id: ${writer.id}, 
-                                            writer_name: '${safeWriterName}', 
-                                            mediaDetailsData: { tmdb_id: ${tmdbId}, media_type: '${mediaType}', origin: originPage } 
-                                         })">
-                                        <div class="w-20 h-20 overflow-hidden rounded-full mx-auto border-2 border-gray-600 hover:border-primary transition duration-150">
-                                            <img src="${writer.profile_path ? `${IMAGE_BASE_URL}${writer.profile_path}` : 'https://placehold.co/100x100/4b5563/d1d5db?text=N/A'}" 
-                                                 alt="${writer.name}" class="w-full h-full object-cover">
-                                        </div>
-                                        <p class="text-sm font-medium mt-1 text-gray-300">${writer.name}</p>
-                                        <p class="text-xs text-gray-500">${writer.job}</p>
-                                    </div>
-                                `;
-                            }).join('')}
+                                <div class="text-center cursor-pointer hover:text-primary transition duration-150" 
+                                     onclick="navigate('writer-details', { 
+                                         writer_id: ${writer.id}, 
+                                         writer_name: '${safeWriterName}', 
+                                         origin: 'media-details', 
+                                         mediaDetailsData: { 
+                                             tmdb_id: ${tmdbId}, 
+                                             media_type: '${mediaType}', 
+                                             origin: '${originPage}' 
+                                         } 
+                                     })">
+                                    <img src="${writer.profile_path ? `${IMAGE_BASE_URL}${writer.profile_path}` : 'https://placehold.co/60x90/4b5563/d1d5db?text=N/A'}" 
+                                         alt="${writer.name}" class="w-16 h-24 object-cover rounded-md mx-auto mb-1">
+                                    <p class="text-xs text-gray-200 font-medium truncate w-16">${writer.name}</p>
+                                    <p class="text-xs text-gray-400 truncate w-16">${writer.job}</p>
+                                </div>
+                            `}).join('')}
                         </div>
                     `;
                 }
-                // FIM DO NOVO: Encontrar Escritores (Roteiristas)
-
-
-                // Renderiza o conteúdo
+                // FIM - Encontrar Escritores
+                
                 mediaDetailsContent.innerHTML = `
-                    <div class="flex flex-col md:flex-row gap-6">
-                        <div class="flex-shrink-0 w-full md:w-80">
-                            <img src="${poster}" alt="Capa de ${title}" class="w-full h-auto object-cover rounded-lg shadow-xl">
+                    <div class="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8">
+                        <div class="flex-shrink-0 mx-auto md:mx-0">
+                            <img src="${poster}" alt="Capa de ${title}" class="w-full max-w-xs rounded-xl shadow-lg">
                         </div>
                         <div class="flex-grow">
                             <h2 class="text-3xl font-bold text-white mb-2">${title}</h2>
@@ -1208,9 +1231,12 @@
                             </div>
 
                             <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mt-6 mb-4">
-                                <button onclick="watchTrailer(${tmdbId}, '${mediaType}')" class="bg-accent text-gray-900 py-3 px-6 rounded-lg hover:bg-yellow-400 transition duration-150 text-lg font-semibold flex items-center justify-center space-x-2 w-full sm:w-auto shadow-lg">
-                                    <i class="fas fa-play"></i> <span>Assistir Trailer</span>
+                                <button onclick="watchTrailer(${tmdbId}, '${mediaType}')"
+                                    class="bg-accent text-gray-900 py-3 px-6 rounded-lg hover:bg-yellow-400 transition duration-150 text-lg font-semibold flex items-center justify-center space-x-2 w-full sm:w-auto shadow-lg">
+                                    <i class="fas fa-play"></i>
+                                    <span>Assistir Trailer</span>
                                 </button>
+                                
                                 ${actionButtonHtml}
                             </div>
                             <h3 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Sinopse</h3>
@@ -1220,100 +1246,101 @@
 
                             <h3 class="text-xl font-semibold text-gray-300 mt-6 mb-3">Elenco Principal</h3>
                             <div id="cast-list" class="flex flex-wrap gap-4">
-                                ${cast.map(actor => {
-                                    // Escapa aspas simples no nome do ator para o JSON
-                                    const safeActorName = actor.name.replace(/'/g, "\\'");
-                                    
-                                    return `
-                                        <div class="text-center cursor-pointer hover:text-primary transition duration-150" 
-                                            onclick="navigate('actor-details', { 
-                                                actor_id: ${actor.id}, 
-                                                actor_name: '${safeActorName}', 
-                                                mediaDetailsData: { tmdb_id: ${tmdbId}, media_type: '${mediaType}', origin: originPage } 
-                                            })">
-                                            <div class="w-20 h-20 overflow-hidden rounded-full mx-auto border-2 border-gray-600 hover:border-primary transition duration-150">
-                                                <img src="${actor.profile_path ? `${IMAGE_BASE_URL}${actor.profile_path}` : 'https://placehold.co/100x100/4b5563/d1d5db?text=N/A'}" 
-                                                     alt="${actor.name}" class="w-full h-full object-cover">
-                                            </div>
-                                            <p class="text-sm font-medium mt-1 text-gray-300">${actor.name}</p>
-                                            <p class="text-xs text-gray-500">${actor.character}</p>
-                                        </div>
-                                    `;
-                                }).join('')}
+                                ${cast.map(actor => `
+                                    <div class="text-center cursor-pointer hover:text-primary transition duration-150" 
+                                         onclick="navigate('actor-details', { 
+                                             actor_id: ${actor.id}, 
+                                             actor_name: '${actor.name.replace(/'/g, "\\'")}', 
+                                             origin: 'media-details', 
+                                             mediaDetailsData: { 
+                                                 tmdb_id: ${tmdbId}, 
+                                                 media_type: '${mediaType}', 
+                                                 origin: '${originPage}' 
+                                             } 
+                                         })">
+                                        <img src="${actor.profile_path ? `${IMAGE_BASE_URL}${actor.profile_path}` : 'https://placehold.co/60x90/4b5563/d1d5db?text=N/A'}" 
+                                             alt="${actor.name}" class="w-16 h-24 object-cover rounded-md mx-auto mb-1">
+                                        <p class="text-xs text-gray-200 font-medium truncate w-16">${actor.name}</p>
+                                        <p class="text-xs text-gray-400 truncate w-16">${actor.character.split(' / ')[0]}</p>
+                                    </div>
+                                `).join('')}
                             </div>
                             
                             ${seasonsHtml}
+
                         </div>
                     </div>
                 `;
 
-                // ***** INÍCIO DA MUDANÇA REQUISITADA: Adiciona o listener ao botão de AÇÃO dinâmico *****
-                const actionButton = document.getElementById(actionButtonId);
-                actionButton.addEventListener('click', async (event) => {
-                    event.stopPropagation();
-                    const button = event.currentTarget;
-                    button.disabled = true;
-                    button.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span>Aguarde...</span>';
+                // ***** INÍCIO DA MUDANÇA REQUISITADA *****
+                // 3. Adiciona o listener para o novo botão
+                const detailsActionButton = document.getElementById('details-action-button');
+                
+                if (detailsActionButton) {
+                    detailsActionButton.addEventListener('click', async (event) => {
+                        const button = event.currentTarget;
+                        const action = button.getAttribute('data-action');
+                        
+                        // Trava o botão
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
 
-                    const tmdbId = parseInt(button.getAttribute('data-tmdb-id'));
-                    const mediaType = button.getAttribute('data-media-type');
-                    const action = button.getAttribute('data-action');
-
-                    if (action === 'remove') {
-                        try {
-                            // 1. Chama a função de remover (sem evento)
-                            await removeFromWatchlist(tmdbId, title, null); 
-
-                            // 2. Atualiza este botão manualmente
-                            button.innerHTML = '<i class="fas fa-plus"></i> <span>Adicionar à Lista</span>';
-                            button.classList.remove('bg-danger', 'hover:bg-red-600');
-                            button.classList.add('bg-success', 'hover:bg-green-600');
-                            button.setAttribute('data-action', 'add');
-                            button.disabled = false;
-                            
-                            // 3. Atualiza o estado global
-                            watchlistIds = watchlistIds.filter(id => id !== String(tmdbId));
-                        } catch (e) {
-                            console.error("Erro ao remover (details):", e);
-                            button.innerHTML = '<i class="fas fa-trash-alt"></i> <span>Remover da Lista</span>'; // Reverte
-                            button.disabled = false;
-                            alert('Falha ao remover: ' + e.message);
-                        }
-                    } else { // action === 'add'
-                        const item = {
-                            tmdb_id: tmdbId,
-                            title: title,
-                            poster_path: button.getAttribute('data-poster'),
-                            release_year: null, // Conforme lógica existente
-                            media_type: mediaType,
-                            vote_average: parseFloat(button.getAttribute('data-vote')) || null
-                        };
-
-                        try {
-                            // 1. Chama a função de salvar (sem evento)
-                            await saveToWatchlist(item, null); 
-
-                            // 2. Atualiza este botão manualmente
-                            button.innerHTML = '<i class="fas fa-trash-alt"></i> <span>Remover da Lista</span>';
-                            button.classList.remove('bg-success', 'hover:bg-green-600');
-                            button.classList.add('bg-danger', 'hover:bg-red-600');
-                            button.setAttribute('data-action', 'remove');
-                            button.disabled = false;
-
-                            // 3. Atualiza o estado global
-                            if (!watchlistIds.includes(String(tmdbId))) {
-                                watchlistIds.push(String(tmdbId));
+                        if (action === 'remove') {
+                            try {
+                                // 1. Chama a função de remoção (sem evento, para não atualizar a UI errada)
+                                await removeFromWatchlist(tmdbId, title, null); 
+                                
+                                // 2. Atualiza este botão manualmente
+                                button.innerHTML = '<i class="fas fa-plus"></i> <span>Adicionar à Lista</span>';
+                                button.classList.remove('bg-danger', 'hover:bg-red-600');
+                                button.classList.add('bg-success', 'hover:bg-green-600');
+                                button.setAttribute('data-action', 'add');
+                                button.disabled = false;
+                                
+                                // 3. Atualiza o estado global
+                                watchlistIds = watchlistIds.filter(wid => wid !== String(tmdbId));
+                            } catch (e) {
+                                console.error("Erro ao remover (details):", e);
+                                button.innerHTML = '<i class="fas fa-trash-alt"></i> <span>Remover da Lista</span>'; // Reverte
+                                button.disabled = false;
                             }
-                        } catch (e) {
-                            console.error("Erro ao adicionar (details):", e);
-                            button.innerHTML = '<i class="fas fa-plus"></i> <span>Adicionar à Lista</span>'; // Reverte
-                            button.disabled = false;
-                            alert('Falha ao adicionar: ' + e.message);
-                        }
-                    }
-                });
-                // ***** FIM DA MUDANÇA REQUISITADA *****
 
+                        } else { // action === 'add'
+                            const item = {
+                                tmdb_id: tmdbId,
+                                title: title,
+                                poster_path: button.getAttribute('data-poster'),
+                                release_year: null, // Conforme lógica existente
+                                media_type: mediaType,
+                                vote_average: parseFloat(button.getAttribute('data-vote')) || null
+                            };
+                            
+                            try {
+                                // 1. Chama a função de salvar (sem evento)
+                                await saveToWatchlist(item, null);
+
+                                // 2. Atualiza este botão manualmente
+                                button.innerHTML = '<i class="fas fa-trash-alt"></i> <span>Remover da Lista</span>';
+                                button.classList.remove('bg-success', 'hover:bg-green-600');
+                                button.classList.add('bg-danger', 'hover:bg-red-600');
+                                button.setAttribute('data-action', 'remove');
+                                button.disabled = false;
+                                
+                                // 3. Atualiza o estado global
+                                if (!watchlistIds.includes(String(tmdbId))) {
+                                    watchlistIds.push(String(tmdbId));
+                                }
+                            } catch (e) {
+                                console.error("Erro ao adicionar (details):", e);
+                                button.innerHTML = '<i class="fas fa-plus"></i> <span>Adicionar à Lista</span>'; // Reverte
+                                button.disabled = false;
+                                alert('Falha ao adicionar: ' + e.message);
+                            }
+                        }
+                    });
+                }
+                // ***** FIM DA MUDANÇA REQUISITADA *****
+                
             } catch (error) {
                 console.error('Erro ao carregar detalhes da mídia:', error);
                 mediaDetailsContent.innerHTML = '<p class="text-center text-danger p-10">Erro ao carregar detalhes do item.</p>';
@@ -1323,57 +1350,40 @@
         // CORREÇÃO DO BUG: A assinatura da função mudou de 'originPage' (string) para 'mediaDetailsData' (objeto)
         async function loadActorDetails(actorId, actorName, mediaDetailsData) {
             actorDetailsContent.innerHTML = '<p class="text-center text-primary animate-pulse p-10">Carregando filmografia do ator...</p>';
-
+            
             try {
                 const actorUrl = `${TMDB_BASE_URL}/person/${actorId}?api_key=${TMDB_API_KEY}&language=pt-BR`;
                 const filmographyUrl = `${TMDB_BASE_URL}/person/${actorId}/combined_credits?api_key=${TMDB_API_KEY}&language=pt-BR`;
-
+                
                 const [actorResponse, filmographyResponse] = await Promise.all([fetch(actorUrl), fetch(filmographyUrl)]);
-                const [actorDetails, filmographyDetails] = await Promise.all([actorResponse.json(), filmographyResponse.json()]);
+                const [actorDetails, filmography] = await Promise.all([actorResponse.json(), filmographyResponse.json()]);
 
-                const profilePicture = actorDetails.profile_path ? `${IMAGE_BASE_URL}${actorDetails.profile_path}` : 'https://placehold.co/300x450/4b5563/d1d5db?text=N/A';
+                const profilePath = actorDetails.profile_path ? `${IMAGE_BASE_URL}${actorDetails.profile_path}` : 'https://placehold.co/150x225/4b5563/d1d5db?text=N/A';
                 const bio = actorDetails.biography || 'Biografia não disponível em Português.';
-                const birthday = formatFullDate(actorDetails.birthday) || 'N/A';
-                const deathday = actorDetails.deathday ? formatFullDate(actorDetails.deathday) : 'Vivo';
-                const placeOfBirth = actorDetails.place_of_birth || 'N/A';
                 
-                // Filtra os trabalhos mais conhecidos (com score maior que 1.0 e tipo filme ou TV)
-                let knownFor = filmographyDetails.cast
-                    .filter(item => item.vote_average > 1.0) 
+                // Filtra para manter apenas filmes e séries com poster e título, e ordena por popularidade
+                const knownFor = filmography.cast
+                    .filter(item => (item.media_type === 'movie' || item.media_type === 'tv') && item.poster_path && (item.title || item.name))
                     .sort((a, b) => b.popularity - a.popularity)
-                    .slice(0, 10);
-                
-                // Remove duplicatas de filmes/séries (caso apareça em 'cast' e 'crew' ou por erro)
-                const uniqueIds = new Set();
-                const uniqueKnownFor = knownFor.filter(item => {
-                    if (uniqueIds.has(item.id)) {
-                        return false;
-                    }
-                    uniqueIds.add(item.id);
-                    return true;
-                });
+                    .slice(0, 30); // Limita a 30 itens
 
-                // Renderiza o conteúdo
                 actorDetailsContent.innerHTML = `
-                    <div class="flex flex-col md:flex-row gap-6 mb-8">
-                        <div class="flex-shrink-0 w-full md:w-64">
-                            <img src="${profilePicture}" alt="Foto de ${actorName}" class="w-full h-auto object-cover rounded-lg shadow-xl">
+                    <div class="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8 mb-8 pb-4 border-b border-gray-700">
+                        <div class="flex-shrink-0 mx-auto md:mx-0">
+                            <img src="${profilePath}" alt="${actorName}" class="w-40 h-60 object-cover rounded-xl shadow-lg">
                         </div>
                         <div class="flex-grow">
-                            <h2 class="text-3xl font-bold text-white mb-4">${actorName}</h2>
-                            <div class="flex flex-wrap text-sm mb-4 gap-4">
-                                <span class="bg-primary text-white px-3 py-1 rounded-full"><i class="fas fa-birthday-cake"></i> Nascimento: ${birthday}</span>
-                                <span class="bg-gray-700 text-gray-300 px-3 py-1 rounded-full"><i class="fas fa-map-marker-alt"></i> Local: ${placeOfBirth}</span>
-                                <span class="bg-gray-700 text-gray-300 px-3 py-1 rounded-full"><i class="fas fa-skull"></i> Falecimento: ${deathday}</span>
-                            </div>
+                            <h2 class="text-3xl font-bold text-white mb-2">${actorName}</h2>
+                            <p class="text-gray-400 mb-4">${actorDetails.birthday ? `Nascido(a) em: ${new Date(actorDetails.birthday).toLocaleDateString('pt-BR')}` : ''}</p>
+                            
                             <h3 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Biografia</h3>
                             <p class="text-gray-400 text-sm max-h-48 overflow-auto">${bio}</p>
                         </div>
                     </div>
                     
-                    <h3 class="text-xl font-semibold text-gray-300 mt-6 mb-4">Filmografia Selecionada (${uniqueKnownFor.length} Títulos Encontrados)</h3>
+                    <h3 class="text-xl font-semibold text-gray-300 mt-6 mb-4">Filmografia (${knownFor.length} Títulos Encontrados)</h3>
                     <div id="actor-filmography" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                        ${uniqueKnownFor.map(item => {
+                        ${knownFor.map(item => {
                             const title = item.title || item.name;
                             const poster = item.poster_path ? `${IMAGE_BASE_URL}${item.poster_path}` : 'https://placehold.co/150x225/4b5563/d1d5db?text=N/A';
                             const mediaType = item.media_type;
@@ -1385,17 +1395,22 @@
                             const safeActorName = actorName.replace(/'/g, "\\'");
 
                             return `
-                                <div class="text-center cursor-pointer hover:scale-105 transition-transform duration-200" 
+                                <div class="text-center cursor-pointer hover:scale-105 transition-transform duration-200"
                                      onclick="navigate('media-details', { 
                                          tmdb_id: ${item.id}, 
                                          media_type: '${mediaType}', 
                                          origin: 'actor-details', 
                                          actorDetailsData: { 
-                                            actor_id: ${actorId}, 
-                                            actor_name: '${safeActorName}', 
-                                            /* CORREÇÃO DO BUG: Passa o objeto 'mediaDetailsData' anterior */
-                                            /* Isso garante que o botão 'voltar' na página do ator funcione */
-                                            mediaDetailsData: { tmdb_id: ${mediaDetailsData.tmdb_id}, media_type: '${mediaDetailsData.media_type}', origin: '${mediaDetailsData.origin}' }
+                                             actor_id: ${actorId}, 
+                                             actor_name: '${safeActorName}', 
+                                             
+                                             /* CORREÇÃO DO BUG: Passa o objeto 'mediaDetailsData' anterior */
+                                             /* Isso garante que o botão 'voltar' na página do ator funcione */
+                                             mediaDetailsData: { 
+                                                 tmdb_id: ${mediaDetailsData.tmdb_id}, 
+                                                 media_type: '${mediaDetailsData.media_type}', 
+                                                 origin: '${mediaDetailsData.origin}' 
+                                             }
                                          } 
                                      })">
                                     <div class="relative w-full h-auto">
@@ -1405,8 +1420,7 @@
                                         </span>` : ''}
                                     </div>
                                     <p class="text-sm text-gray-200 font-medium suggestions-title w-full mt-1">${title}</p>
-                                    <p class="text-xs text-gray-400">${mediaType === 'movie' ? 'Filme' : 'Série'} (${displayDate})</p>
-                                </div>
+                                    <p class="text-xs text-gray-400">${mediaType === 'movie' ? 'Filme' : 'Série'} (${displayDate})</p> </div>
                             `;
                         }).join('')}
                     </div>
@@ -1418,51 +1432,40 @@
             }
         }
         
-        // NOVO: Função loadWriterDetails (Filmografia do Escritor)
+        // NOVO: Função para carregar detalhes do Escritor
         async function loadWriterDetails(writerId, writerName, mediaDetailsData) {
             writerDetailsContent.innerHTML = '<p class="text-center text-primary animate-pulse p-10">Carregando filmografia do escritor...</p>';
-
+            
             try {
                 const writerUrl = `${TMDB_BASE_URL}/person/${writerId}?api_key=${TMDB_API_KEY}&language=pt-BR`;
                 const filmographyUrl = `${TMDB_BASE_URL}/person/${writerId}/combined_credits?api_key=${TMDB_API_KEY}&language=pt-BR`;
-
+                
                 const [writerResponse, filmographyResponse] = await Promise.all([fetch(writerUrl), fetch(filmographyUrl)]);
-                const [writerDetails, filmographyDetails] = await Promise.all([writerResponse.json(), filmographyResponse.json()]);
+                const [writerDetails, filmography] = await Promise.all([writerResponse.json(), filmographyResponse.json()]);
 
-                const profilePicture = writerDetails.profile_path ? `${IMAGE_BASE_URL}${writerDetails.profile_path}` : 'https://placehold.co/300x450/4b5563/d1d5db?text=N/A';
+                const profilePath = writerDetails.profile_path ? `${IMAGE_BASE_URL}${writerDetails.profile_path}` : 'https://placehold.co/150x225/4b5563/d1d5db?text=N/A';
                 const bio = writerDetails.biography || 'Biografia não disponível em Português.';
-                const birthday = formatFullDate(writerDetails.birthday) || 'N/A';
-                const deathday = writerDetails.deathday ? formatFullDate(writerDetails.deathday) : 'Vivo';
-                const placeOfBirth = writerDetails.place_of_birth || 'N/A';
                 
-                // Filtra os trabalhos onde a pessoa tem a função de 'Writing' e/ou 'Creator'
-                let knownFor = filmographyDetails.crew.filter(item => 
-                    item.department === 'Writing' || item.job === 'Creator'
-                ).sort((a, b) => b.popularity - a.popularity);
-                
-                // Remove duplicatas e garante que seja filme ou série
-                const uniqueIds = new Set();
-                const uniqueKnownFor = knownFor.filter(item => {
-                    if ((item.media_type !== 'movie' && item.media_type !== 'tv') || uniqueIds.has(item.id)) {
-                        return false;
-                    }
-                    uniqueIds.add(item.id);
-                    return true;
-                });
+                // CRUCIAL: Escritores estão na "crew", não no "cast"
+                const knownFor = filmography.crew
+                    .filter(item => (item.media_type === 'movie' || item.media_type === 'tv') && item.poster_path && (item.title || item.name))
+                    // Filtra para garantir que são trabalhos de escrita
+                    .filter(item => item.department === 'Writing')
+                    .sort((a, b) => b.popularity - a.popularity);
 
-                // Renderiza o conteúdo
+                // Remove duplicados pelo ID (um escritor pode ter múltiplos jobs no mesmo filme)
+                const uniqueKnownFor = Array.from(new Map(knownFor.map(item => [item.id, item])).values()).slice(0, 30);
+
+
                 writerDetailsContent.innerHTML = `
-                    <div class="flex flex-col md:flex-row gap-6 mb-8">
-                        <div class="flex-shrink-0 w-full md:w-64">
-                            <img src="${profilePicture}" alt="Foto de ${writerName}" class="w-full h-auto object-cover rounded-lg shadow-xl">
+                    <div class="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8 mb-8 pb-4 border-b border-gray-700">
+                        <div class="flex-shrink-0 mx-auto md:mx-0">
+                            <img src="${profilePath}" alt="${writerName}" class="w-40 h-60 object-cover rounded-xl shadow-lg">
                         </div>
                         <div class="flex-grow">
-                            <h2 class="text-3xl font-bold text-white mb-4">${writerName}</h2>
-                            <div class="flex flex-wrap text-sm mb-4 gap-4">
-                                <span class="bg-primary text-white px-3 py-1 rounded-full"><i class="fas fa-birthday-cake"></i> Nascimento: ${birthday}</span>
-                                <span class="bg-gray-700 text-gray-300 px-3 py-1 rounded-full"><i class="fas fa-map-marker-alt"></i> Local: ${placeOfBirth}</span>
-                                <span class="bg-gray-700 text-gray-300 px-3 py-1 rounded-full"><i class="fas fa-skull"></i> Falecimento: ${deathday}</span>
-                            </div>
+                            <h2 class="text-3xl font-bold text-white mb-2">${writerName}</h2>
+                            <p class="text-gray-400 mb-4">${writerDetails.birthday ? `Nascido(a) em: ${new Date(writerDetails.birthday).toLocaleDateString('pt-BR')}` : ''}</p>
+                            
                             <h3 class="text-xl font-semibold text-gray-300 mt-4 mb-2">Biografia</h3>
                             <p class="text-gray-400 text-sm max-h-48 overflow-auto">${bio}</p>
                         </div>
@@ -1481,15 +1484,21 @@
                             const safeWriterName = writerName.replace(/'/g, "\\'");
 
                             return `
-                                <div class="text-center cursor-pointer hover:scale-105 transition-transform duration-200" 
+                                <div class="text-center cursor-pointer hover:scale-105 transition-transform duration-200"
                                      onclick="navigate('media-details', { 
                                          tmdb_id: ${item.id}, 
                                          media_type: '${mediaType}', 
                                          origin: 'writer-details', 
                                          writerDetailsData: { 
-                                            writer_id: ${writerId}, 
-                                            writer_name: '${safeWriterName}', 
-                                            mediaDetailsData: { tmdb_id: ${mediaDetailsData.tmdb_id}, media_type: '${mediaDetailsData.media_type}', origin: '${mediaDetailsData.origin}' }
+                                             writer_id: ${writerId}, 
+                                             writer_name: '${safeWriterName}', 
+                                             
+                                             /* Passa o objeto 'mediaDetailsData' anterior para o 'voltar' */
+                                             mediaDetailsData: { 
+                                                 tmdb_id: ${mediaDetailsData.tmdb_id}, 
+                                                 media_type: '${mediaDetailsData.media_type}', 
+                                                 origin: '${mediaDetailsData.origin}' 
+                                             }
                                          } 
                                      })">
                                     <div class="relative w-full h-auto">
@@ -1499,6 +1508,7 @@
                                         </span>` : ''}
                                     </div>
                                     <p class="text-sm text-gray-200 font-medium suggestions-title w-full mt-1">${title}</p>
+                                    <p class="text-xs text-gray-400">${item.job}</p>
                                     <p class="text-xs text-gray-400">${mediaType === 'movie' ? 'Filme' : 'Série'} (${displayDate})</p>
                                 </div>
                             `;
@@ -1514,98 +1524,334 @@
 
 
         // ===================================================
-        // FUNÇÕES DE WATCHLIST (AJAX, STORAGE e SORTABLE)
+        // FUNÇÕES DE PERSISTÊNCIA E REORDENAÇÃO (CLIENTE)
         // ===================================================
 
-        // FUNÇÃO AJUSTADA PARA PEGAR A VOTE_AVERAGE ATUALIZADA E A DATA COMPLETA DA API DO TMDB
-        async function loadWatchlist(loadSuggestionsToo = false) {
-            
-            // 1. Tenta buscar a lista do Pages Function (Backend)
-            // Se falhar, usa a lista salva localmente (cache local)
-            // O código do backend foi omitido, assumimos que esta parte funciona
-            const savedWatchlist = localStorage.getItem('watchlist');
-            const initialWatchlist = savedWatchlist ? JSON.parse(savedWatchlist) : [];
+        // ***** INÍCIO DA MUDANÇA REQUISITADA *****
+        // 1. A assinatura da função foi alterada: 'event' agora é o segundo parâmetro e é opcional (null)
+        async function saveToWatchlist(item, event = null) {
+            // 2. O botão agora é pego condicionalmente
+            const button = event ? event.currentTarget : null;
+            let originalText = '';
+            let originalClass = '';
             
             try {
-                const response = await fetch('/api/watchlist');
-                if (!response.ok) {
-                    throw new Error(`Erro ${response.status}: Falha ao carregar a lista do backend.`);
+                // 3. Toda a manipulação do botão agora está dentro de um 'if (button)'
+                if (button) {
+                    originalText = button.innerHTML;
+                    originalClass = button.className;
+                    
+                    button.disabled = true;
+                    button.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>'; 
+                    button.classList.remove('bg-success', 'hover:bg-green-600');
+                    button.classList.add('bg-gray-500', 'cursor-not-allowed');
                 }
-                const data = await response.json();
+
+                // POST para adicionar item
+                // 'item' já está vindo com release_year: null (definido em displaySearchResults)
+                const response = await fetch('/api/watchlist', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(item)
+                });
                 
-                // Se o backend retornar sucesso, usa a lista atualizada
-                currentWatchlist = data.watchlist.map(item => ({
-                    ...item,
-                    tmdb_id: parseInt(item.tmdb_id), // Garante que seja número
-                    // Adiciona campos vazios para serem preenchidos pela API do TMDB
-                    poster_path: item.poster_path || null,
-                    vote_average: item.vote_average || null,
-                    release_date: item.release_date || null
-                }));
+                const result = await response.json();
+
+                if (response.status === 201) {
+                    // 4. Atualiza o estado global (SEMPRE, mesmo sem botão)
+                    watchlistIds.push(String(item.tmdb_id)); 
+                    
+                    // 5. Atualiza a UI (APENAS se houver um botão)
+                    if (button) {
+                        button.innerHTML = '<i class="fas fa-trash-alt"></i> Remover'; // Muda para remover
+                        button.className = originalClass.replace(/bg-success|hover:bg-green-600|bg-gray-500|cursor-not-allowed/g, '').trim();
+                        button.classList.add('action-button', 'bg-danger', 'hover:bg-red-600', 'text-white', 'py-1', 'px-3', 'rounded-md', 'text-sm', 'font-medium', 'flex', 'items-center', 'justify-center', 'space-x-1');
+                        button.setAttribute('data-is-added', 'true');
+                        button.disabled = false;
+                        
+                        // Recarrega as sugestões/busca
+                        if (currentPage === 'suggestions' && searchInput.value.trim() !== '' && resultsContainer.querySelector('.space-y-3')) {
+                            performSearch();
+                        } else {
+                            reloadAllSuggestions();
+                        }
+                    }
+                    
+                } else if (response.status === 200 && result.message === "Item já está na lista.") {
+                    if (button) {
+                        button.innerHTML = '<i class="fas fa-trash-alt"></i> Remover';
+                        button.className = originalClass.replace(/bg-success|hover:bg-green-600|bg-gray-500|cursor-not-allowed/g, '').trim();
+                        button.classList.add('action-button', 'bg-danger', 'hover:bg-red-600', 'text-white', 'py-1', 'px-3', 'rounded-md', 'text-sm', 'font-medium', 'flex', 'items-center', 'justify-center', 'space-x-1');
+                        button.setAttribute('data-is-added', 'true');
+                        button.disabled = false;
+                    }
+                    
+                } else {
+                    console.error(`Erro ao adicionar "${item.title}": ${result.error || 'Erro desconhecido'}`);
+                    // Se houver erro, reverte o estado do botão (se existir)
+                    if (button) {
+                        button.disabled = false;
+                        button.innerHTML = originalText;
+                        button.className = originalClass;
+                        alert(`Falha ao adicionar: ${result.error || 'Erro desconhecido de comunicação.'}`); // Feedback ao usuário
+                    } else {
+                        // Se não houver botão (ex: página de detalhes), lança o erro para o listener de detalhes tratar
+                        throw new Error(result.error || 'Erro desconhecido de comunicação.');
+                    }
+                }
+
+            } catch (e) {
+                console.error('Erro de rede ao adicionar item:', e);
+                // Se houver erro de rede, reverte o estado do botão (se existir)
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                    button.className = originalClass;
+                    alert('Erro de rede ao tentar adicionar item. Verifique o console.');
+                } else {
+                    // Se não houver botão, lança o erro para o listener de detalhes tratar
+                    throw e;
+                }
+            }
+        }
+        // ***** FIM DA MUDANÇA REQUISITADA *****
+        
+        async function removeFromWatchlist(tmdbId, title, event = null) {
+             // O uso de 'window.confirm' é um placeholder para o modal. Em produção, use um modal UI.
+             // Se o evento for nulo (vindo da pág de detalhes), não pede confirmação
+             if (currentPage === 'watchlist' && event && !window.confirm(`Tem certeza que deseja remover "${title}" da sua lista?`)) {
+                 return;
+             }
+
+             const button = event ? event.currentTarget : null;
+             const originalText = button ? button.innerHTML : '';
+             const originalClass = button ? button.className : '';
+             
+             if(button) {
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+                button.classList.remove('bg-danger', 'hover:bg-red-600');
+                button.classList.add('bg-gray-500', 'cursor-not-allowed');
+             }
+
+            try {
+                // DELETE para remover item
+                const response = await fetch('/api/watchlist', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tmdb_id: tmdbId })
+                });
+
+                if (response.status === 200) {
+                    console.log(`"${title}" removido com sucesso!`);
+                    // Atualiza o estado global (SEMPRE)
+                    watchlistIds = watchlistIds.filter(id => id !== String(tmdbId)); 
+                    currentWatchlist = currentWatchlist.filter(item => item.tmdb_id !== tmdbId); 
+                    
+                    // Atualiza a UI (APENAS se um evento/botão foi passado)
+                    if (button) {
+                        if (currentPage === 'watchlist') {
+                            filterWatchlist(currentFilter); // RecarreGA a visualização da lista
+                        } else if (currentPage === 'suggestions') {
+                            // AJUSTE: Mudar o botão na página de sugestões/busca de volta para Adicionar
+                            button.innerHTML = '<i class="fas fa-plus"></i> Adicionar'; 
+                            button.className = originalClass.replace(/bg-danger|hover:bg-red-600|bg-gray-500|cursor-not-allowed/g, '').trim();
+                            button.classList.add('action-button', 'bg-success', 'hover:bg-green-600', 'text-white', 'py-1', 'px-3', 'rounded-md', 'text-sm', 'font-medium', 'flex', 'items-center', 'justify-center', 'space-x-1');
+                            button.setAttribute('data-is-added', 'false');
+                            button.disabled = false;
+                            
+                            // MUDANÇA: Recarrega usando a função global
+                            if (searchInput.value.trim() !== '' && resultsContainer.querySelector('.space-y-3')) {
+                                performSearch();
+                            } else {
+                                reloadAllSuggestions();
+                            }
+                        }
+                    }
+
+
+                } else {
+                    const result = await response.json();
+                    console.error(`Erro ao remover "${title}": ${result.error || 'Item não encontrado'}`);
+                    if(button) {
+                        button.disabled = false;
+                        button.innerHTML = originalText;
+                        button.className = originalClass;
+                    } else {
+                        // Se não houver botão (ex: pág de detalhes), lança o erro
+                        throw new Error(result.error || 'Item não encontrado');
+                    }
+                }
+
+            } catch (e) {
+                console.error('Erro de rede ao remover item:', e);
+                if(button) {
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                    button.className = originalClass;
+                } else {
+                    // Se não houver botão, lança o erro
+                    throw e;
+                }
+            }
+        }
+
+        // FUNÇÃO DE REORDENAÇÃO AJUSTADA PARA USAR O MÉTODO PUT NA ROTA PRINCIPAL
+        async function updateWatchlistOrder(newOrder) {
+            console.log('Nova Ordem dos IDs:', newOrder);
+
+            reorderStatus.textContent = 'Salvando nova ordem...';
+            reorderStatus.className = 'text-sm text-center text-accent mt-2 animate-pulse';
+            reorderStatus.classList.remove('hidden');
+
+            try {
+                // PUT para reordenar item
+                const response = await fetch('/api/watchlist', { // Rota única
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_order: newOrder }) // Payload
+                });
+
+                if (response.ok) {
+                    reorderStatus.textContent = 'Ordem salva com sucesso!';
+                    reorderStatus.className = 'text-sm text-center text-success mt-2';
+                    
+                    // Atualiza a ordem da lista cacheada localmente
+                    const newOrderMap = newOrder.reduce((map, id, index) => {
+                        map[id] = index;
+                        return map;
+                    }, {});
+                    currentWatchlist.sort((a, b) => newOrderMap[a.tmdb_id] - newOrderMap[b.tmdb_id]);
+
+                    setTimeout(() => reorderStatus.classList.add('hidden'), 1500);
+                } else {
+                    const result = await response.json();
+                    throw new Error(result.error || 'Falha ao salvar a ordem no backend.');
+                }
+
+
+            } catch (e) {
+                console.error('ERRO DE REORDENAÇÃO:', e);
+                reorderStatus.textContent = `Erro ao salvar a ordem: ${e.message}. Verifique o arquivo functions/api/watchlist.js.`;
+                reorderStatus.className = 'text-sm text-center text-danger mt-2';
+                reorderStatus.classList.remove('hidden');
+                setTimeout(() => reorderStatus.classList.add('hidden'), 5000);
+                filterWatchlist(currentFilter); // Recarrega com a ordem antiga ou do backend
+            }
+        }
+
+        // ===============================================
+        // ***** INÍCIO DA CORREÇÃO PARA LG TV *****
+        // ===============================================
+        function initSortable() {
+            if (sortableInstance) {
+                sortableInstance.destroy();
+            }
+
+            // Só inicializa o Sortable se houver itens para ordenar E o filtro for 'all'
+            if (watchlistResults.children.length > 0 && currentFilter === 'all') {
+                sortableInstance = Sortable.create(watchlistResults, {
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    handle: '.watchlist-item', // O item inteiro ainda é o "movable"
+                    
+                    // AJUSTE: 'filter' especifica elementos que NÃO devem iniciar um arrasto.
+                    // Isso força o Sortable.js a ignorar 'clicks' (mousedown/touchstart) 
+                    // nesses elementos, permitindo que os eventos 'onclick' nativos 
+                    // dos botões e dos links de navegação (com a classe .clickable-area) funcionem.
+                    filter: 'button, .clickable-area', 
+
+                    delay: 200, 
+                    delayOnTouchOnly: true,
+                    forceFallback: true, 
+                    onEnd: function (evt) {
+                        const newOrder = Array.from(watchlistResults.children)
+                            .map(item => item.getAttribute('data-tmdb-id'))
+                            .filter(id => id !== null);
+
+                        updateWatchlistOrder(newOrder);
+                    },
+                });
+            } else {
+                 sortableInstance = null; // Garante que a variável esteja limpa se não for inicializada
+            }
+        }
+        // ===============================================
+        // ***** FIM DA CORREÇÃO PARA LG TV *****
+        // ===============================================
+
+        // FUNÇÃO loadWatchlist AJUSTADA PARA PEGAR A VOTE_AVERAGE ATUALIZADA E A DATA COMPLETA DA API DO TMDB
+        async function loadWatchlist(loadSuggestionsToo = false) {
+            if (currentPage === 'watchlist') {
+                watchlistResults.innerHTML = '<div class="col-span-full text-center text-primary animate-pulse p-4">Carregando sua lista...</div>';
+            }
+            
+            try {
+                // 1. GET para buscar lista local (ordem e metadados básicos)
+                const response = await fetch('/api/watchlist'); 
+                let data = await response.json();
                 
-                // Atualiza o cache local
-                localStorage.setItem('watchlist', JSON.stringify(currentWatchlist));
+                // 2. BUSCAR DADOS ATUALIZADOS DO TMDB PARA CADA ITEM
+                const fetchDetailsPromises = data.map(async (item) => {
+                    try {
+                        // URL sem a linguagem para garantir que a API retorne os dados
+                        const detailsUrl = `${TMDB_BASE_URL}/${item.media_type}/${item.tmdb_id}?api_key=${TMDB_API_KEY}&language=pt-BR`;
+                        const detailsResponse = await fetch(detailsUrl);
+                        const details = await detailsResponse.json();
+                        
+                        // Atualiza a nota no objeto local
+                        if (details.vote_average !== undefined && details.vote_average !== null) {
+                            item.vote_average = details.vote_average;
+                        }
+
+                        // MUDANÇA: Adiciona a data de lançamento completa da API ao objeto
+                        item.release_date = details.release_date || details.first_air_date || null;
+                        
+                        // AJUSTE 4: Salva os dados da série no item
+                        if (item.media_type === 'tv') {
+                            item.number_of_seasons = details.number_of_seasons;
+                            item.last_episode_to_air = details.last_episode_to_air; // This is an object
+                            item.number_of_episodes = details.number_of_episodes; // Total
+                        }
+                        // FIM DO AJUSTE 4
+
+                    } catch (e) {
+                        console.error(`Erro ao buscar dados atualizados do item ${item.tmdb_id} na API do TMDb:`, e);
+                        // Se falhar, mantém os dados antigos (ou nulos)
+                        item.release_date = null;
+                    }
+                    return item; // Retorna o item (com ou sem dados atualizados)
+                });
+
+                // Aguarda todas as buscas de detalhes
+                currentWatchlist = await Promise.all(fetchDetailsPromises);
+                
+                watchlistIds = currentWatchlist.map(item => String(item.tmdb_id)); // Atualiza o array de IDs
+                
+                // 3. Renderiza a lista se estiver na página "Minha Lista"
+                if (currentPage === 'watchlist') {
+                    filterWatchlist(currentFilter); 
+                }
+
+                // MUDANÇA: Usa a nova função helper
+                if (loadSuggestionsToo) {
+                    reloadAllSuggestions();
+                }
+
 
             } catch (error) {
-                console.warn('Usando lista em cache local devido a erro do backend:', error.message);
-                currentWatchlist = initialWatchlist;
-                if (currentWatchlist.length > 0 && currentPage === 'watchlist') {
-                    watchlistResults.innerHTML = '<p class="col-span-full text-center text-accent p-4 border border-dashed border-gray-600 rounded-lg"><i class="fas fa-exclamation-triangle mr-2"></i> Lista carregada do cache local. Pode estar desatualizada.</p>';
-                } else if (currentPage === 'watchlist') {
-                    watchlistResults.innerHTML = '<p class="col-span-full text-center text-gray-500 p-4 border border-dashed border-gray-600 rounded-lg">Sua lista está vazia. Adicione itens na aba "Sugestões".</p>';
+                console.error('Erro ao carregar lista (incluindo dados do D1 ou API):', error);
+                if (currentPage === 'watchlist') {
+                    watchlistResults.innerHTML = '<p class="col-span-full text-center text-danger p-4 border border-dashed border-gray-600 rounded-lg">Erro ao carregar sua lista. Verifique a configuração do Pages Function (Backend) e a API do TMDb.</p>';
                 }
             }
-            
-            // 2. Busca detalhes atualizados (data, nota, poster) no TMDB para cada item
-            // Esta etapa é crucial para a função filterWatchlist e displaySearchResults funcionar corretamente.
-            const fetchDetailsPromises = currentWatchlist.map(async (item) => {
-                const apiType = item.media_type === 'movie' ? 'movie' : 'tv';
-                try {
-                    const detailsUrl = `${TMDB_BASE_URL}/${apiType}/${item.tmdb_id}?api_key=${TMDB_API_KEY}&language=pt-BR`;
-                    const response = await fetch(detailsUrl);
-                    const details = await response.json();
-                    
-                    // Atualiza os campos relevantes com os dados mais recentes do TMDB
-                    item.poster_path = details.poster_path;
-                    item.vote_average = details.vote_average;
-                    // Adiciona a data de lançamento ou primeira exibição
-                    item.release_date = details.release_date || details.first_air_date || null;
-                    
-                    // AJUSTE 5: Adiciona contagem de episódios/temporadas para Séries
-                    if (item.media_type === 'tv') {
-                        item.number_of_seasons = details.number_of_seasons;
-                        item.last_episode_to_air = details.last_episode_to_air;
-                    }
-                    // FIM DO AJUSTE 5
-
-                } catch (e) {
-                    console.error(`Falha ao buscar detalhes do item ${item.tmdb_id}:`, e);
-                    // Se falhar, mantém os dados antigos (ou nulos)
-                    item.release_date = null;
-                }
-                return item; // Retorna o item (com ou sem dados atualizados)
-            });
-
-            // Aguarda todas as buscas de detalhes
-            currentWatchlist = await Promise.all(fetchDetailsPromises);
-            watchlistIds = currentWatchlist.map(item => String(item.tmdb_id)); // Atualiza o array de IDs
-
-            // 3. Renderiza a lista se estiver na página "Minha Lista"
-            if (currentPage === 'watchlist') {
-                filterWatchlist(currentFilter);
-            }
-            
-            // MUDANÇA: Usa a nova função helper
-            if (loadSuggestionsToo) {
-                reloadAllSuggestions();
-            }
-
         }
+
 
         // FUNÇÃO AJUSTADA PARA MOSTRAR A NOTA NA CAPA E A DATA COMPLETA
         function filterWatchlist(filterType) {
             currentFilter = filterType;
-
+            
             // Atualiza o visual dos botões
             filterButtons.forEach(button => {
                 const buttonFilter = button.getAttribute('data-filter');
@@ -1620,28 +1866,35 @@
             if (filterType !== 'all') {
                 filteredList = currentWatchlist.filter(item => item.media_type === filterType);
             }
-
+            
             watchlistResults.innerHTML = ''; // Limpa a lista antes de renderizar
 
             if (filteredList.length === 0) {
-                watchlistResults.innerHTML = `<p class="col-span-full text-center text-gray-500 p-4 border border-dashed border-gray-600 rounded-lg">Nenhum ${filterType === 'movie' ? 'filme' : filterType === 'tv' ? 'série' : 'item'} encontrado na lista.</p>`;
-                initSortable(); // Destrói o sortable se não houver itens
+                 const message = filterType === 'movie' 
+                    ? 'Nenhum filme na sua lista.'
+                    : filterType === 'tv' 
+                        ? 'Nenhuma série na sua lista.'
+                        : 'Sua lista está vazia. Adicione itens pela página de Sugestões.';
+                
+                watchlistResults.innerHTML = `<p class="col-span-full text-center text-gray-500 p-4 border border-dashed border-gray-600 rounded-lg">${message}</p>`;
+                if (sortableInstance) sortableInstance.destroy();
+                sortableInstance = null;
                 return;
             }
 
+
             filteredList.forEach(item => {
-                const title = item.title;
-                const releaseDate = item.release_date;
-                const type = item.media_type;
-                const typeLabel = type === 'movie' ? 'Filme' : 'Série';
-                // MUDANÇA: Usa a função de data completa
-                const displayDate = formatFullDate(releaseDate) || 'N/A'; 
+                const typeLabel = item.media_type === 'movie' ? 'Filme' : 'Série';
                 const poster = item.poster_path ? `${IMAGE_BASE_URL}${item.poster_path}` : 'https://placehold.co/100x150/4b5563/d1d5db?text=N/A';
                 
-                // AJUSTE 4: Lógica do Rating
-                const rating = item.vote_average ? `${(item.vote_average * 10).toFixed(0)}%` : 'N/A';
+                // O item.vote_average aqui já é o valor mais atualizado da API
+                const ratingPercent = item.vote_average ? `${(item.vote_average * 10).toFixed(0)}%` : 'N/A';
                 
-                // AJUSTE 5: Lógica de contagem de episódios/temporadas
+                // MUDANÇA: Formata a data completa buscada da API
+                const releaseDate = item.release_date; // Esta propriedade foi adicionada em loadWatchlist
+                const displayDate = formatFullDate(releaseDate) || 'N/A';
+                
+                // AJUSTE 5: Adiciona contagem de episódios/temporadas para Séries
                 let episodeCountStr = '';
                 if (item.media_type === 'tv' && item.number_of_seasons && item.last_episode_to_air) {
                     episodeCountStr = ` • ${item.number_of_seasons}x${item.last_episode_to_air.episode_number}`;
@@ -1657,228 +1910,61 @@
                 // ATUALIZADO: Adicionado a função de navegação no bloco da imagem e no bloco de texto
                 const navigationHtml = `onclick="navigate('media-details', { tmdb_id: ${item.tmdb_id}, media_type: '${item.media_type}', origin: 'watchlist' })"`;
 
+                // ===============================================
+                // ***** INÍCIO DA CORREÇÃO PARA LG TV *****
+                // ===============================================
+                // Adicionada a classe 'clickable-area' aos divs de navegação
                 card.innerHTML = `
-                    <div class="flex-shrink-0 w-20 h-30 flex items-center justify-center relative cursor-pointer ${navigationHtml}">
-                        <img src="${poster}" alt="Capa de ${title}" class="poster-fit object-contain w-full h-full rounded-lg">
+                    <div class="flex-shrink-0 w-20 h-[120px] flex items-center justify-center cursor-pointer relative clickable-area ${navigationHtml} ${!item.poster_path ? 'placeholder-image bg-gray-600' : ''}">
+                        <img src="${poster}" alt="Capa de ${item.title}" class="poster-fit w-full h-full object-cover rounded-md">
+                        
                         ${item.vote_average ? `<span class="absolute top-1 left-1 bg-black bg-opacity-70 text-yellow-400 text-xs font-bold px-1 py-0.5 rounded-full flex items-center">
-                            <i class="fas fa-star text-xs mr-0.5"></i>${(item.vote_average * 10).toFixed(0)}%
-                        </span>` : ''}
+                            <i class="fas fa-star text-xs mr-0.5"></i>${ratingPercent}
+                        </span>` : ''} 
                     </div>
                     
-                    <div class="flex-grow flex flex-col justify-between min-w-0">
-                        <div class="min-w-0 mr-4 cursor-pointer" ${navigationHtml}>
-                            <h3 class="font-bold text-gray-100 watchlist-title">${title}</h3> 
-                            <p class="text-sm text-gray-400">
-                                ${typeLabel} (${displayDate})${episodeCountStr} </p>
+                    <div class="flex-grow flex flex-col sm:flex-row sm:items-start justify-between min-w-0">
+                        <div class="min-w-0 mr-4 cursor-pointer clickable-area pt-1" ${navigationHtml}>
+                            <h3 class="font-bold text-lg text-gray-100 watchlist-title">${item.title}</h3>
+                            <p class="text-sm text-gray-400 mt-1">
+                                ${typeLabel} • ${displayDate}${episodeCountStr}
+                            </p>
                         </div>
-                        <div class="flex space-x-2 mt-3 flex-shrink-0">
-                            <button class="trailer-button bg-accent text-gray-900 py-1 px-3 rounded-md hover:bg-yellow-400 transition duration-150 text-sm font-medium flex items-center justify-center space-x-1" data-id="${item.tmdb_id}" data-type="${type}">
-                                <i class="fas fa-play"></i><span>Trailer</span>
+
+                        <div class="flex space-x-2 mt-3 sm:mt-0 flex-shrink-0">
+                            <button onclick="watchTrailer(${item.tmdb_id}, '${item.media_type}')"
+                                class="bg-accent text-gray-900 py-2 px-3 rounded-lg hover:bg-yellow-400 transition duration-150 text-sm font-medium flex items-center justify-center space-x-1">
+                                <i class="fas fa-play"></i>
                             </button>
-                            <button class="remove-button bg-danger hover:bg-red-600 text-white py-1 px-3 rounded-md transition duration-150 text-sm font-medium flex items-center justify-center space-x-1" 
-                                    data-id="${item.tmdb_id}" data-title="${title}">
-                                <i class="fas fa-trash-alt"></i><span>Remover</span>
+                            <button onclick="removeFromWatchlist(${item.tmdb_id}, '${item.title.replace(/'/g, "\\'")}', event)"
+                                    class="bg-danger text-white py-2 px-3 rounded-lg hover:bg-red-600 transition duration-150 text-sm font-medium flex items-center justify-center space-x-1">
+                                <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
                     </div>
                 `;
+                // ===============================================
+                // ***** FIM DA CORREÇÃO PARA LG TV *****
+                // ===============================================
                 
-                // Anexa listeners de clique
-                card.querySelector('.remove-button').addEventListener('click', (event) => {
-                    event.stopPropagation();
-                    const id = parseInt(event.currentTarget.getAttribute('data-id'));
-                    const itemTitle = event.currentTarget.getAttribute('data-title');
-                    removeFromWatchlist(id, itemTitle, event);
-                });
-
-                card.querySelector('.trailer-button').addEventListener('click', (event) => {
-                    event.stopPropagation();
-                    const id = event.currentTarget.getAttribute('data-id');
-                    const type = event.currentTarget.getAttribute('data-type');
-                    watchTrailer(id, type);
-                });
-
                 watchlistResults.appendChild(card);
             });
             
-            // Inicializa o SortableJS após o carregamento da lista
-            initSortable(); 
+            initSortable();
         }
 
-        async function saveToWatchlist(itemData, event) {
-            if (event) event.currentTarget.disabled = true;
-            
-            const itemTitle = itemData.title;
-            const apiType = itemData.media_type;
-
-            try {
-                const response = await fetch('/api/watchlist', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(itemData),
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Falha ao adicionar o item no backend.');
-                }
-                
-                // Atualiza a lista local e a interface
-                await loadWatchlist(true); 
-
-                // Feedback visual de sucesso
-                const successMessage = `<p class="text-center text-success mt-2">"${itemTitle}" adicionado(a) à sua lista!</p>`;
-                if (event) {
-                    const card = event.currentTarget.closest('.suggestion-card, .flex-grow');
-                    if (card) {
-                         const tempMsg = document.createElement('div');
-                         tempMsg.innerHTML = successMessage;
-                         card.appendChild(tempMsg.firstChild);
-                         setTimeout(() => tempMsg.remove(), 1500);
-                    }
-                } else {
-                    // Se for na página de detalhes, faz o feedback de outra forma
-                    console.log(`"${itemTitle}" adicionado(a) com sucesso.`);
-                }
-                
-            } catch (error) {
-                console.error('ERRO AO SALVAR:', error);
-                alert('Erro ao adicionar à lista. Verifique a configuração do Pages Function (Backend).');
-            } finally {
-                 if (event) event.currentTarget.disabled = false;
-            }
-        }
-
-        async function removeFromWatchlist(tmdbId, title, event) {
-            if (event) event.currentTarget.disabled = true;
-            
-            try {
-                const response = await fetch('/api/watchlist', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tmdb_id: tmdbId }),
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Falha ao remover o item no backend.');
-                }
-
-                // Atualiza a lista local e a interface
-                await loadWatchlist(true); 
-
-                // Feedback visual de sucesso
-                const successMessage = `<p class="text-center text-danger mt-2">"${title}" removido(a) da sua lista.</p>`;
-                if (event) {
-                    const card = event.currentTarget.closest('.watchlist-item') || event.currentTarget.closest('.suggestion-card, .flex-grow');
-                    if (card) {
-                        // Se estiver na lista principal, a lista recarrega automaticamente
-                        if (card.classList.contains('watchlist-item')) {
-                            // O loadWatchlist já chamou o filterWatchlist, então o item já sumiu.
-                        } else {
-                            // Se estiver nas sugestões/resultados de busca
-                            const tempMsg = document.createElement('div');
-                            tempMsg.innerHTML = successMessage;
-                            card.appendChild(tempMsg.firstChild);
-                            setTimeout(() => tempMsg.remove(), 1500);
-                            
-                            // Força a atualização do botão
-                            const actionButton = card.querySelector('.action-button');
-                            if (actionButton) {
-                                actionButton.innerHTML = '<i class="fas fa-plus"></i><span>Adicionar</span>';
-                                actionButton.classList.remove('bg-danger', 'hover:bg-red-600');
-                                actionButton.classList.add('bg-success', 'hover:bg-green-600');
-                                actionButton.setAttribute('data-is-added', 'false');
-                            }
-                        }
-                    }
-                } else {
-                    // Se for na página de detalhes, faz o feedback de outra forma
-                    console.log(`"${title}" removido(a) com sucesso.`);
-                }
-                
-            } catch (error) {
-                console.error('ERRO AO REMOVER:', error);
-                alert('Erro ao remover da lista. Verifique a configuração do Pages Function (Backend).');
-            } finally {
-                if (event) event.currentTarget.disabled = false;
-            }
-        }
-
-        async function updateWatchlistOrder(newOrder) {
-            reorderStatus.textContent = 'Salvando nova ordem...';
-            reorderStatus.className = 'text-sm text-center text-primary mt-2';
-            reorderStatus.classList.remove('hidden');
-
-            // Mapeia a nova ordem para a lista atual
-            const newOrderMap = newOrder.reduce((acc, tmdb_id, index) => {
-                acc[tmdb_id] = index;
-                return acc;
-            }, {});
-
-            try {
-                const response = await fetch('/api/watchlist/reorder', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ new_order_ids: newOrder }),
-                });
-
-                if (response.ok) {
-                    reorderStatus.textContent = 'Ordem salva com sucesso!';
-                    reorderStatus.className = 'text-sm text-center text-success mt-2';
-                    // Atualiza a lista local com a nova ordem
-                    currentWatchlist.sort((a, b) => newOrderMap[a.tmdb_id] - newOrderMap[b.tmdb_id]);
-                    setTimeout(() => reorderStatus.classList.add('hidden'), 1500);
-                } else {
-                    const result = await response.json();
-                    throw new Error(result.error || 'Falha ao salvar a ordem no backend.');
-                }
-            } catch (e) {
-                console.error('ERRO DE REORDENAÇÃO:', e);
-                reorderStatus.textContent = `Erro ao salvar a ordem: ${e.message}. Verifique o arquivo functions/api/watchlist.js.`;
-                reorderStatus.className = 'text-sm text-center text-danger mt-2';
-                reorderStatus.classList.remove('hidden');
-                setTimeout(() => reorderStatus.classList.add('hidden'), 5000);
-                filterWatchlist(currentFilter); // Recarrega com a ordem antiga ou do backend
-            }
-        }
-
-        function initSortable() {
-            if (sortableInstance) {
-                sortableInstance.destroy();
-            }
-
-            // Só inicializa o Sortable se houver itens para ordenar E o filtro for 'all'
-            if (watchlistResults.children.length > 0 && currentFilter === 'all') {
-                sortableInstance = Sortable.create(watchlistResults, {
-                    animation: 150,
-                    ghostClass: 'sortable-ghost',
-                    handle: '.watchlist-item',
-                    delay: 200,
-                    delayOnTouchOnly: true,
-                    forceFallback: true,
-                    onEnd: function (evt) {
-                        const newOrder = Array.from(watchlistResults.children)
-                            .map(item => item.getAttribute('data-tmdb-id'))
-                            .filter(id => id !== null);
-                        updateWatchlistOrder(newOrder);
-                    },
-                });
-            } else {
-                sortableInstance = null; // Garante que a variável esteja limpa se não for inicializada
-            }
-        }
-
-        // ===================================================
-        // INICIALIZAÇÃO
-        // ===================================================
-
+        // ATUALIZADO: Gerencia o estado inicial e o listener popstate
         document.addEventListener('DOMContentLoaded', () => {
-            // Lógica para lidar com o histórico (Voltar/Avançar)
+            
+            // Se houver um estado (ex: reload), usa-o. Senão, vai para sugestões.
+            // Também verifica o hash para o carregamento inicial
             let initialPage = 'suggestions';
-            let initialState = { page: initialPage, data: null };
+            let initialState = { page: 'suggestions', data: null };
 
-            if (window.location.hash) {
+            if (history.state) {
+                initialPage = history.state.page;
+                initialState = history.state;
+            } else if (window.location.hash) {
                 const hashPage = window.location.hash.substring(1);
                 if (hashPage === 'watchlist' || hashPage === 'suggestions') {
                     initialPage = hashPage;
@@ -1889,7 +1975,6 @@
             
             _renderPage(initialState.page, initialState.data);
             history.replaceState(initialState, '', window.location.hash || '.');
-
 
             
             // Adiciona listeners aos botões de filtro
