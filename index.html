@@ -67,6 +67,17 @@
 <script>
     let links = JSON.parse(localStorage.getItem('meusLinks')) || [];
 
+    // Valida se a URL possui estrutura de domínio (ex: palavra.extensão)
+    function urlValida(url) {
+        url = url.trim();
+        // Remove o protocolo temporariamente se existir para validar apenas o domínio
+        let dominio = url.replace(/^https?:\/\//i, '');
+        
+        // Regex garante que tem pelo menos caracteres antes e depois de um ponto, sem espaços
+        const regexDominio = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+        return regexDominio.test(dominio);
+    }
+
     function formatarURL(url) {
         url = url.trim();
         if (!/^https?:\/\//i.test(url)) {
@@ -86,7 +97,10 @@
 
     function criarLink() {
         let urlOriginal = document.getElementById('urlInput').value;
-        if (!urlOriginal) return alert('Insira uma URL válida!');
+        
+        if (!urlOriginal || !urlValida(urlOriginal)) {
+            return alert('Erro: Digite um domínio válido (ex: google.com). Apenas 1 palavra não é aceito.');
+        }
 
         urlOriginal = formatarURL(urlOriginal);
         const id = gerarID();
@@ -100,6 +114,9 @@
     function editarLink(id) {
         let novoDestino = prompt("Digite o novo link de destino:");
         if (novoDestino) {
+            if (!urlValida(novoDestino)) {
+                return alert('Erro: Digite um domínio válido (ex: google.com).');
+            }
             novoDestino = formatarURL(novoDestino);
             const link = links.find(l => l.id === id);
             if (link) {
