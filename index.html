@@ -10,50 +10,98 @@
             max-width: 600px;
             margin: 40px auto;
             padding: 20px;
-            background-color: #f4f4f9;
+            background-color: #121214;
+            color: #e1e1e6;
         }
         .container {
-            background: white;
+            background: #202024;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        h2, h3 {
+            color: #ffffff;
+        }
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
         }
         input[type="text"] {
-            width: 70%;
-            padding: 10px;
+            flex: 1;
+            padding: 12px;
             margin-right: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid #323238;
             border-radius: 4px;
+            background-color: #121214;
+            color: #ffffff;
+            outline: none;
+        }
+        input[type="text"]:focus {
+            border-color: #00875f;
         }
         button {
-            padding: 10px 15px;
-            background-color: #007bff;
+            padding: 12px 20px;
+            background-color: #00875f;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
         }
-        button:hover { background-color: #0056b3; }
-        .link-list { margin-top: 30px; }
+        button:hover { 
+            background-color: #00b37e; 
+        }
+        .link-list { 
+            margin-top: 30px; 
+        }
         .link-item {
-            background: #f9f9f9;
-            padding: 10px;
-            margin-bottom: 10px;
+            background: #29292e;
+            padding: 15px;
+            margin-bottom: 12px;
             border-radius: 4px;
-            border-left: 4px solid #007bff;
+            border-left: 4px solid #00875f;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .edit-btn { background-color: #ffc107; color: black; }
-        .edit-btn:hover { background-color: #e0a905; }
+        .link-item a {
+            color: #61dafb;
+            text-decoration: none;
+        }
+        .link-item a:hover {
+            text-decoration: underline;
+        }
+        .link-item small {
+            color: #8d8d99;
+            display: block;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+        .actions-btn {
+            display: flex;
+            gap: 8px;
+        }
+        .edit-btn { 
+            background-color: #e1ba14; 
+            color: #121214; 
+        }
+        .edit-btn:hover { 
+            background-color: #ffdc3d; 
+        }
+        .delete-btn {
+            background-color: #f75a68;
+        }
+        .delete-btn:hover {
+            background-color: #ff7684;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>Criar Link Encurtado</h2>
-    <div style="display: flex;">
+    <div class="input-group">
         <input type="text" id="urlInput" placeholder="Ex: google.com ou https://google.com">
         <button onclick="criarLink()">Encurtar</button>
     </div>
@@ -67,13 +115,9 @@
 <script>
     let links = JSON.parse(localStorage.getItem('meusLinks')) || [];
 
-    // Valida se a URL possui estrutura de domínio (ex: palavra.extensão)
     function urlValida(url) {
         url = url.trim();
-        // Remove o protocolo temporariamente se existir para validar apenas o domínio
         let dominio = url.replace(/^https?:\/\//i, '');
-        
-        // Regex garante que tem pelo menos caracteres antes e depois de um ponto, sem espaços
         const regexDominio = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
         return regexDominio.test(dominio);
     }
@@ -142,16 +186,15 @@
                         <strong>Curto:</strong> <a href="${l.linkCurto}">${l.linkCurto}</a><br>
                         <small><strong>Destino atual:</strong> ${l.urlOriginal}</small>
                     </div>
-                    <div>
+                    <div class="actions-btn">
                         <button class="edit-btn" onclick="editarLink('${l.id}')">Editar</button>
-                        <button style="background-color: #dc3545;" onclick="deletarLink('${l.id}')">X</button>
+                        <button class="delete-btn" onclick="deletarLink('${l.id}')">X</button>
                     </div>
                 </div>
             `;
         });
     }
 
-    // Executa o redirecionamento se houver parâmetro ?r= na URL
     const urlParams = new URLSearchParams(window.location.search);
     const idRedirecionamento = urlParams.get('r');
     if (idRedirecionamento) {
@@ -159,7 +202,7 @@
         if (linkAlvo) {
             window.location.href = linkAlvo.urlOriginal;
         } else {
-            document.body.innerHTML = "<h1 style='text-align:center;margin-top:50px;'>Link não encontrado ou expirado.</h1>";
+            document.body.innerHTML = "<h1 style='text-align:center;margin-top:50px;color:#f75a68;'>Link não encontrado ou expirado.</h1>";
         }
     } else {
         renderizarLinks();
